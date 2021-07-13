@@ -1,0 +1,15 @@
+/venv
+/A4
+*.jpeg
+*.jpg
+*.xls
+*.xlsx
+*.webp
+*.pptx
+*.bmp
+*.bmp.part
+*.gif
+*.svg
+*.doc
+*.docx
+.idea/
