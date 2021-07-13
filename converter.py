@@ -6,7 +6,14 @@ import sys
 import subprocess
 import re
 import os
+<<<<<<< HEAD
 import cv2
+=======
+import pdfkit
+
+
+# sudo apt-get install wkhtmltopdf !!!!!
+>>>>>>> 244266b4351b50694b5a1d3693734a38111be06d
 
 class PageSize:
     __formats_list_size = {
@@ -81,6 +88,30 @@ class OfficeConverter(PageSize):
             return filename.group(1)
 
 
+<<<<<<< HEAD
 file = './sample_5184×3456.bmp.part'
 obj = ImageConverter(format_file='A4', input_path=file)
 obj.convert_to_pdf()
+=======
+def txt2pdf(file_path, format='A4', arg='-o'):
+    file = PageSize(format_file=format, input_path=file_path)
+    datetime_dir = datetime.datetime.now().strftime('%y%m%d')
+    output_path = os.path.join(file.out_put_path,
+                               datetime_dir + f'/{file_path.split("/")[-1].split(".")[:-1][0]}.pdf')
+    os.system(f'./txt2pdf.py {arg} {output_path} {file.input_path}')
+
+
+def html2pdf(file_path, format='A4'):
+    file = PageSize(format_file=format, input_path=file_path)
+    datetime_dir = datetime.datetime.now().strftime('%y%m%d')
+    output_path = os.path.join(file.out_put_path,
+                               datetime_dir + f'/{file_path.split("/")[-1].split(".")[:-1][0]}.pdf')
+    pdfkit.from_file(file.input_path, output_path)
+
+
+file = './file-sample_100kB.rtf'
+obj = OfficeConverter(format_file='A4', input_path=file)
+obj.convert_to_pdf()
+
+html2pdf('./lol.html')
+>>>>>>> 244266b4351b50694b5a1d3693734a38111be06d

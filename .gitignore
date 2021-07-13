@@ -1,5 +1,9 @@
 /venv
+<<<<<<< HEAD
 /A4
+=======
+/A4/*
+>>>>>>> 244266b4351b50694b5a1d3693734a38111be06d
 *.jpeg
 *.jpg
 *.xls
@@ -12,4 +16,12 @@
 *.svg
 *.doc
 *.docx
+<<<<<<< HEAD
+=======
+*.rtf
+*.html
+*.txt
+!requirements.txt
+*.png
+>>>>>>> 244266b4351b50694b5a1d3693734a38111be06d
 .idea/
