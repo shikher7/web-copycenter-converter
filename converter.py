@@ -6,14 +6,9 @@ import sys
 import subprocess
 import re
 import os
-<<<<<<< HEAD
-import cv2
-=======
 import pdfkit
 
-
 # sudo apt-get install wkhtmltopdf !!!!!
->>>>>>> 244266b4351b50694b5a1d3693734a38111be06d
 
 class PageSize:
     __formats_list_size = {
@@ -38,8 +33,10 @@ class ImageConverter(PageSize):
         self.image_file = Image.open(self.input_path)
 
     def convert_to_pdf(self):
-        basename = (self.input_path.split('/')[-1]).split('.')[:-1]
-        suffix = datetime.datetime.now().strftime('%y%m%d_%H%M%S')
+        basename = (self.input_path.split('/')[-1]).split('.')[:]
+        suffix = datetime.datetime.now().strftime('%d.%m.%y')
+        basename += '_' + suffix
+        convert_time = datetime.datetime.now().strftime('%H:%M:00')
         self.page_size = tuple(map(float, self.page_size))
         self.page_size = (int(self.page_size[0] * 200), int(self.page_size[1] * 200))
         target_width, target_height = self.page_size
@@ -50,12 +47,11 @@ class ImageConverter(PageSize):
         canvas_image = Image.new(mode='RGB', size=self.page_size, color='white')
         canvas_image.paste(resized_image)
         try:
-            os.mkdir(self.page_format + '/' + suffix.split('_')[0])
+            os.mkdir(self.page_format + '/' + suffix + '/' + convert_time + '/' + basename[1])
         except FileExistsError:
             print('Directory already exists')
-        canvas_image.save(os.path.join(self.out_put_path,
-                                       suffix.split('_')[0] + '/' + basename[
-                                           0] + suffix.split('_')[1] + '.pdf'), format='PDF', quality=200)
+        canvas_image.save(os.path.join(self.out_put_path, suffix, convert_time, basename[1], basename[
+            0] + '.pdf'), format='PDF', quality=200)
 
 
 class LibreOfficeError(Exception):
@@ -74,11 +70,12 @@ class OfficeConverter(PageSize):
         return 'libreoffice'
 
     def convert_to_pdf(self, timeout=None):
-        basename = (self.input_path.split('/')[-1]).split('.')[:-1]
-        suffix = datetime.datetime.now().strftime('%y%m%d')
+        basename = (self.input_path.split('/')[-1]).split('.')[-1]
+        print(basename)
+        suffix = datetime.datetime.now().strftime('%d.%m.%y')
+        convert_time = datetime.datetime.now().strftime('%H:%M:00')
         args = [self.__libreoffice_exec(), '--headless', '--convert-to', 'pdf', '--outdir',
-                os.path.join(self.out_put_path, suffix + '/' + basename[0] +
-                             datetime.datetime.now().strftime('%H%M%S')), self.input_path]
+                os.path.join(self.out_put_path, suffix, convert_time, basename), self.input_path]
         process = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
         filename = re.search('-> (.*?) using filter', process.stdout.decode())
 
@@ -87,31 +84,24 @@ class OfficeConverter(PageSize):
         else:
             return filename.group(1)
 
-
-<<<<<<< HEAD
-file = './sample_5184×3456.bmp.part'
-obj = ImageConverter(format_file='A4', input_path=file)
-obj.convert_to_pdf()
-=======
-def txt2pdf(file_path, format='A4', arg='-o'):
+def exception_files2pdf(file_path, format):
     file = PageSize(format_file=format, input_path=file_path)
-    datetime_dir = datetime.datetime.now().strftime('%y%m%d')
+    datetime_dir = datetime.datetime.now().strftime('%d.%m.%y')
+    convert_time = datetime.datetime.now().strftime('%H:%M:00')
+    try:
+        os.mkdir(os.path.join(file.out_put_path, datetime_dir, convert_time, file_path.split('/')[-1].split('.')[-1]))
+    except FileExistsError:
+        print('Directory already exists')
     output_path = os.path.join(file.out_put_path,
-                               datetime_dir + f'/{file_path.split("/")[-1].split(".")[:-1][0]}.pdf')
-    os.system(f'./txt2pdf.py {arg} {output_path} {file.input_path}')
+                               datetime_dir, convert_time, file_path.split('/')[-1].split('.')[
+                                   -1] + f'/{file_path.split("/")[-1].split(".")[:-1][0]}.pdf')
+    return file_path, output_path
 
 
-def html2pdf(file_path, format='A4'):
-    file = PageSize(format_file=format, input_path=file_path)
-    datetime_dir = datetime.datetime.now().strftime('%y%m%d')
-    output_path = os.path.join(file.out_put_path,
-                               datetime_dir + f'/{file_path.split("/")[-1].split(".")[:-1][0]}.pdf')
-    pdfkit.from_file(file.input_path, output_path)
+def txt2pdf(input_path, format, arg='-o'):
+    file_path, output_path = exception_files2pdf(input_path, format)
+    return os.system(f'./txt2pdf.py {arg} {output_path} {file_path}')
 
-
-file = './file-sample_100kB.rtf'
-obj = OfficeConverter(format_file='A4', input_path=file)
-obj.convert_to_pdf()
-
-html2pdf('./lol.html')
->>>>>>> 244266b4351b50694b5a1d3693734a38111be06d
+def html2pdf(input_path, format):
+    file_path, output_path = exception_files2pdf(input_path, format)
+    return pdfkit.from_file(file_path, output_path)
