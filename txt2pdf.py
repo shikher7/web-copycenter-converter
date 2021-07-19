@@ -1,6 +1,3 @@
-#! /usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import argparse
 import reportlab.lib.pagesizes
 from reportlab.pdfgen.canvas import Canvas
@@ -153,7 +150,6 @@ class PDFCreator(object):
         for _, line in data:
             lineno += 1
 
-            # Handle form feed characters.
             (line, pageBreakCount) = re.subn(r'\f', r'', line)
             if pageBreakCount > 0 and lineno >= args.minimum_page_length:
                 for _ in range(pageBreakCount):
