@@ -1,9 +1,7 @@
-import os
-import time
+import os.path
+from dotenv import load_dotenv
 
 from converter import ImageConverter, OfficeConverter, html2pdf, txt2pdf
-
-import fleep
 
 
 class Editor:
@@ -43,14 +41,19 @@ class Editor:
                 self.__distributing(file_path, extension=file_path.split('/')[-1].split('.')[-1])
 
 
-if __name__ == '__main__':
-    obj = Editor('A3',
-                 files_path_list=[
-                     '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/file_example_XLS_1000.xls',
-                     '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/file_example_XLSX_10.xlsx',
-                     '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/file-sample_100kB.doc',
-                     '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/file-sample_100kB.docx',
-                     '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/pngtree-pink-watercolor-brushes-png-image_5054156.jpg',
-                     '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/lol.txt',
-                     '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/index.html'])
-    obj.converting()
+dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+if os.path.exists(dotenv_path):
+    load_dotenv(dotenv_path)
+DEBUG = bool(int(os.environ.get('DEBUG')))
+if DEBUG:
+    if __name__ == '__main__':
+        obj = Editor('A3',
+                     files_path_list=[
+                         '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/file_example_XLS_1000.xls',
+                         '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/file_example_XLSX_10.xlsx',
+                         '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/file-sample_100kB.doc',
+                         '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/file-sample_100kB.docx',
+                         '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/pngtree-pink-watercolor-brushes-png-image_5054156.jpg',
+                         '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/lol.txt',
+                         '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/index.html'])
+        obj.converting()

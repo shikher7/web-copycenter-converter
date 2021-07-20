@@ -102,7 +102,7 @@ def exception_files2pdf(file_path, format):
 
 def txt2pdf(input_path, format, arg='-o'):
     file_path, output_path = exception_files2pdf(input_path, format)
-    return os.system(f'./txt2pdf.py {arg} {output_path} {file_path}')
+    return os.system(f'{os.path.join(os.path.dirname(__file__), "txt2pdf.py")} {arg} {output_path} {file_path}')
 
 
 def html2pdf(input_path, format):

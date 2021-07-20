@@ -1,5 +1,6 @@
 /venv
 /A4/*
+/A3/*
 *.jpeg
 *.jpg
 *.xls
@@ -18,3 +19,4 @@
 !requirements.txt
 *.png
 .idea/
+.env
