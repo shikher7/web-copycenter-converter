@@ -20,3 +20,5 @@
 *.png
 .idea/
 .env
+/input_images/*
+/input_documents/*

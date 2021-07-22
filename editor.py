@@ -3,6 +3,10 @@ from dotenv import load_dotenv
 
 from converter import ImageConverter, OfficeConverter, html2pdf, txt2pdf
 
+ROOT_DIR = os.path.dirname(__file__)
+IMAGE_DIR = os.path.join(ROOT_DIR, 'input_images')
+DOCUMENT_DIR = os.path.join(ROOT_DIR, 'input_documents')
+
 
 class Editor:
     __distributor = {
@@ -34,6 +38,10 @@ class Editor:
             txt2pdf(file_path, self.__page_format)
         elif extension == 'html':
             html2pdf(file_path, self.__page_format)
+        try:
+            os.remove(file_path)
+        except OSError as e:
+            print("ERROR: %s - %s." % (e.filename, e.strerror))
 
     def converting(self):
         for file_path in self.__files_path_list:

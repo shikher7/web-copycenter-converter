@@ -149,6 +149,7 @@ class PDFCreator(object):
         page = self._newpage()
         for _, line in data:
             lineno += 1
+
             (line, pageBreakCount) = re.subn(r'\f', r'', line)
             if pageBreakCount > 0 and lineno >= args.minimum_page_length:
                 for _ in range(pageBreakCount):
