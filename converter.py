@@ -47,7 +47,8 @@ class ImageConverter(PageSize):
         canvas_image = Image.new(mode='RGB', size=self.page_size, color='white')
         canvas_image.paste(resized_image)
         try:
-            os.mkdir(self.page_format + '/' + suffix + '/' + convert_time + '/' + basename[1])
+            from pathlib import Path
+            Path(os.path.join(self.page_format, suffix, convert_time, basename[1])).mkdir(parents=True, exist_ok=True)
         except FileExistsError:
             print('Directory already exists')
         canvas_image.save(os.path.join(self.out_put_path, suffix, convert_time, basename[1], basename[
@@ -100,8 +101,12 @@ def exception_files2pdf(file_path, format):
 
 def txt2pdf(input_path, format, arg='-o'):
     file_path, output_path = exception_files2pdf(input_path, format)
-    return os.system(f'./txt2pdf.py {arg} {output_path} {file_path}')
+    return os.system(f'{os.path.join(os.path.dirname(__file__), "txt2pdf.py")} {arg} {output_path} {file_path}')
 
 def html2pdf(input_path, format):
     file_path, output_path = exception_files2pdf(input_path, format)
     return pdfkit.from_file(file_path, output_path)
+
+
+obj = ImageConverter('A4', '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/pnggrad16rgb.png')
+obj.convert_to_pdf()
