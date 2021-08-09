@@ -19,13 +19,6 @@
 !requirements.txt
 *.png
 .idea/
-<<<<<<< HEAD
-.env
-/input_images/*
-/input_documents/*
-/__pycache__/*
-*.pyc
-=======
 BackEnd/.env
 /BackEnd/input_images/*
 /BackEnd/input_documents/*
@@ -33,4 +26,3 @@ BackEnd/.env
 *.pyc
 /__pycache__/*
 *.db
->>>>>>> main
