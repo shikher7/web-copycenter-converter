@@ -14,7 +14,7 @@ def get_file_info(settings):
             file_info = smartCopyCenterBot.get_file(file_contact)
             downloaded_file = smartCopyCenterBot.download_file(file_info.file_path)
             src = os.path.join(os.path.abspath(root_dir),
-                               ''.join([str(message.from_user.username), '_', file_name]))
+                               ''.join([str(message.from_user.id), '_', file_name]))
             return downloaded_file, src
 
         return wrapper
@@ -26,7 +26,7 @@ def get_file_info(settings):
 def get_document(message):
     file_contact = message.document.file_id
     file_name = message.document.file_name
-    root_dir = './input_documents'
+    root_dir = 'input_documents'
     return message, file_contact, root_dir, file_name
 
 
@@ -34,7 +34,7 @@ def get_document(message):
 def get_image(message):
     file_contact = message.photo[len(message.photo) - 2].file_id
     file_name = smartCopyCenterBot.get_file(file_contact).file_path.split('/')[-1]
-    root_dir = './input_images'
+    root_dir = 'input_images'
     return message, file_contact, root_dir, file_name
 
 
@@ -73,17 +73,23 @@ def save_document(message):
             mode = DOCUMENT_DIR
         with open(src, 'wb') as new_file:
             new_file.write(downloaded_file)
-            converting_files_in_dirs(mode)
+        converting_files_in_dirs(mode)
         smartCopyCenterBot.reply_to(message, 'success')
     except Exception as e:
         smartCopyCenterBot.reply_to(message, e)
 
 
-def converting_files_in_dirs(mode):
+def update_files_list(mode):
     files = os.listdir(mode)
-    files = [os.path.join(mode, f) for f in files]
+    return [os.path.join(mode, f) for f in files]
+
+
+def converting_files_in_dirs(mode):
+    files = update_files_list(mode)
     files2pdf = Editor(page_format='A4', files_path_list=files)
     files2pdf.converting()
+    files = update_files_list(mode)
+    [os.unlink(file) for file in files if file.split('.')[-1] != 'pdf']
 
 
 smartCopyCenterBot.polling(none_stop=True, interval=0)

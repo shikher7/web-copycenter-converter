@@ -1,5 +1,5 @@
 /venv
-/A4/*
+/BackEnd/A4/*
 /A3/*
 *.jpeg
 *.jpg
@@ -19,8 +19,18 @@
 !requirements.txt
 *.png
 .idea/
+<<<<<<< HEAD
 .env
 /input_images/*
 /input_documents/*
 /__pycache__/*
 *.pyc
+=======
+BackEnd/.env
+/BackEnd/input_images/*
+/BackEnd/input_documents/*
+/BackEnd/trash/*
+*.pyc
+/__pycache__/*
+*.db
+>>>>>>> main
