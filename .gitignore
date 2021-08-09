@@ -22,3 +22,7 @@
 .env
 /input_images/*
 /input_documents/*
+/trash/*
+*.pyc
+/__pycache__/*
+*.db
