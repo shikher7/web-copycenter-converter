@@ -1,5 +1,5 @@
 import os.path
-from editor import Editor, IMAGE_DIR, DOCUMENT_DIR
+from BackEnd.editor import Editor, IMAGE_DIR, DOCUMENT_DIR
 
 import telebot
 

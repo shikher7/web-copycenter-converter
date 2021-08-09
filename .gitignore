@@ -22,3 +22,4 @@
 .env
 /input_images/*
 /input_documents/*
+/__pycache__/*
