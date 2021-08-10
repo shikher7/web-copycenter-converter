@@ -61,6 +61,7 @@ class DataBaseEditor:
                                                                       FOREIGN KEY (printer_id) REFERENCES printers(ID)
                                                                           );
                             """)
+        self.connection.commit()
 
     def __clear_tables_where_date_some_older(self, max_days=2):
         self.cursor.execute("""
@@ -71,26 +72,28 @@ class DataBaseEditor:
                          (datetime.datetime.now() - datetime.datetime.strptime(date[0], "%d.%m.%y")).days > max_days]
         for date in deleted_dates:
             self.cursor.execute(f"""
-                                DELETE FROM users where request_date=?;
+                                DELETE FROM users_has_files where request_date=?;
                                 """, (date,))
             self.connection.commit()
 
-    def insert_into_users(self, row_id, user_id, file_type, price, date):
+    def check_city_isinstance(self, city):
+        city = city.lower()
         self.cursor.execute("""
-                            INSERT INTO users (user_id, file_type, price, request_date, row_id) VALUES (?, ?, ?, ?, ?);
-                            """, (user_id, file_type, price, date, row_id))
-        self.connection.commit()
+                            SELECT city from printers where city=?
+                            """, (city,))
+        if self.cursor.fetchone() is not None:
+            return True
+        return None
 
-    def insert_into_users_has_files(self, values):
-        self.cursor.execute("""
-                            INSERT INTO users_has_files VALUES (?, ?, ?, ?, ?)
-                            """, values)
+    def close_connection(self):
+        self.connection.close()
 
 
 if __name__ == '__main__':
     obj = DataBaseEditor()
     connection = sqlite3.connect('users_key_files.db')
     cur = connection.cursor()
+    # print(obj.check_city_isinstance('Lol'))
     # cur.execute("""DROP TABLE users""")
     # cur.execute("""DROP TABLE users_has_files""")
     # cur.execute("""DROP TABLE printers""")
