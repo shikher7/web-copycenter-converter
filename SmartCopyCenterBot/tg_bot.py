@@ -5,6 +5,7 @@ from states import reques_city, locat, text_from_user, print_settings, feedback
 from aiogram.dispatcher.storage import FSMContext
 from keyboards import city_select_keyboard, point_select_keyboard, list_buttoncreate_keyboard, upload_select_keyboard, printparam_select_keyboard, print_set_keyboard, pay_keyboard, fdbck_menu_keyboard, menu_keyboard
 from random import randint
+from geolocation_city_search import geoloc_city_search
 
 bot = Bot(token=API_TOKEN)
 storage = MemoryStorage()
@@ -108,22 +109,36 @@ async def callback_processing(callback_query: types.CallbackQuery, state: FSMCon
 @dp.message_handler(state=reques_city.city)
 async def city_handler(message: types.Message, state: FSMContext):
     city = message.text
-    await state.update_data(city=city)
-    await state.finish()
-    await bot.send_message(message.from_user.id, "Выберите принтер для печати удобным вам способом",
-                           reply_markup=point_select_keyboard())
+    # citysearch = mydb.select_info(city) я хочу получить значение(я) из таблицы, для того, чтобы проверить,
+    # есть ли они там вообще по заданному городу, и в случае, если бд вернет пустой список, то вывести предупреждение пользователю
+    if citysearch is None:
+        await message.answer("Упс\nВ данном городе сервис PrintDocCloud не работает, проверьте "
+                             "еще раз введенный город или посмотрите на карте наши точки")
+        await reques_city.city.set()
+    else:
+        await state.update_data(city=city)
+        await state.finish()
+        await bot.send_message(message.from_user.id, "Выберите принтер для печати удобным вам способом",
+                               reply_markup=point_select_keyboard())
 
 
 # Обработка города через геолокацию
 @dp.message_handler(content_types=["location"], state=locat.reqlocation)
 async def city_handler(message: types.Message, state: FSMContext):
-    # далее по координатам определить город
-    location = [message.location.longitude, message.location.latitude]
-    await state.update_data(reqlocation=location)
-    await message.answer(f"Ваши координаты {message.location.longitude, message.location.latitude}")
-    await bot.send_message(message.from_user.id, "Выберите принтер для печати удобным вам способом",
-                           reply_markup=point_select_keyboard())
-    await state.finish()
+    city = geoloc_city_search(message.location.latitude, message.location.longitude)
+    # citysearch = mydb.select_info(city) я хочу получить значение(я) из таблицы, для того, чтобы проверить,
+    # есть ли они там вообще по заданному городу, и в случае, если бд вернет пустой список, то вывести предупреждение пользователю
+    await message.answer(f"Ваш город: {city}")
+    if citysearch is None:
+        await message.answer("Упс\nВ данном городе сервис PrintDocCloud не работает,"
+                             "включите передачу геолокации на телефоне и попробуйте снова")
+        await locat.reqlocation.set()
+    else:
+        await state.update_data(city=city)
+        await state.finish()
+        await bot.send_message(message.from_user.id, "Выберите принтер для печати удобным вам способом",
+                               reply_markup=point_select_keyboard())
+
 
 
 # Выбор точки по адресу
@@ -150,7 +165,6 @@ async def street_handler(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=text_from_user.user_text)
 async def user_test_handler(message: types.Message, state: FSMContext):
-    print(bot.forward_message(message.chat.id, from_chat_id=message.forward_from_chat.id, message_id=message.migrate_from_chat_id))
     usr_text = message.text
     await state.update_data(user_text=usr_text)
     await state.finish()
@@ -189,10 +203,16 @@ async def user_test_handler(message: types.Message, state: FSMContext):
 @dp.message_handler(state=feedback.userfeedback)
 async def user_test_handler(message: types.Message, state: FSMContext):
     fdbck = message.text
+    feedback_to_send = {
+        "user_id": message.from_user.id,
+        "user_name": message.from_user.first_name,
+        "user_feedback": fdbck
+    }
     await state.update_data(feedback=fdbck)
     await state.finish()
-    await bot.send_message(message.from_user.id, "Большое спасибо за отзыв!")
-    await bot.send_message(message.from_user.id, "меню", reply_markup=menu_keyboard())
+    await bot.send_message(299723780, "#Отзыв")
+    await bot.forward_message(299723780, message.from_user.id, message.message_id)
+    await bot.send_message(message.from_user.id, "Большое спасибо за отзыв!\nПереводим Вас в меню", reply_markup=menu_keyboard())
 
 
 
