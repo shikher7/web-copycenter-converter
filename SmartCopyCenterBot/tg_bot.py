@@ -168,9 +168,12 @@ async def street_handler(message: types.Message, state: FSMContext):
     await state.finish()
 
 
-@dp.message_handler(state=text_from_user.user_text)
+@dp.message_handler(state=text_from_user.user_text, content_types=["document", "photo"])
 async def user_test_handler(message: types.Message, state: FSMContext):
-    usr_text = message.text
+    #ВОТ СЮДА ВСТАВЛЯТЬ КОД С СКАЧИВАЕНИЕМ ФАЙЛОВ, И ПОЛУЧЕНИЯ ИХ ПУТИ
+    usr_text = message.document #Переменная юзается для того, чтобы хранить путь файла, если не нужен, лучше просто оставь, ибо я не уверен, как оно будет работать
+    #Если файл пройдет проверку и все ок, т.е не будет ошибки для пользователя, то вставь в выполнение последние 3 строки, если будет ошибка, после вывода ошибки
+    #добавь вот эту строчку( await text_from_user.user_text.set() ) чтоб хендлер запустился еще раз
     await state.update_data(user_text=usr_text)
     await state.finish()
     await bot.send_message(message.from_user.id, "Давай настроим параметры на печати, или сразу отправляй документ на печать", reply_markup=printparam_select_keyboard())
