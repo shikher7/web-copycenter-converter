@@ -26,3 +26,4 @@ BackEnd/.env
 *.pyc
 /__pycache__/*
 *.db
+/SmartCopyCenterBot/config.py
