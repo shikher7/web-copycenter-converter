@@ -6,6 +6,7 @@ from aiogram.dispatcher.storage import FSMContext
 from keyboards import city_select_keyboard, point_select_keyboard, list_buttoncreate_keyboard, upload_select_keyboard, printparam_select_keyboard, print_set_keyboard, pay_keyboard, fdbck_menu_keyboard, menu_keyboard
 from random import randint
 from geolocation_city_search import geoloc_city_search
+from BackEnd.database_editor import DataBaseEditor
 
 bot = Bot(token=API_TOKEN)
 storage = MemoryStorage()
@@ -109,8 +110,10 @@ async def callback_processing(callback_query: types.CallbackQuery, state: FSMCon
 @dp.message_handler(state=reques_city.city)
 async def city_handler(message: types.Message, state: FSMContext):
     city = message.text
-    # citysearch = mydb.select_info(city) я хочу получить значение(я) из таблицы, для того, чтобы проверить,
-    # есть ли они там вообще по заданному городу, и в случае, если бд вернет пустой список, то вывести предупреждение пользователю
+    db = DataBaseEditor()
+    citysearch = db.check_city_isinstance(city)
+    db.close_connection()
+    del db
     if citysearch is None:
         await message.answer("Упс\nВ данном городе сервис PrintDocCloud не работает, проверьте "
                              "еще раз введенный город или посмотрите на карте наши точки")
@@ -126,8 +129,10 @@ async def city_handler(message: types.Message, state: FSMContext):
 @dp.message_handler(content_types=["location"], state=locat.reqlocation)
 async def city_handler(message: types.Message, state: FSMContext):
     city = geoloc_city_search(message.location.latitude, message.location.longitude)
-    # citysearch = mydb.select_info(city) я хочу получить значение(я) из таблицы, для того, чтобы проверить,
-    # есть ли они там вообще по заданному городу, и в случае, если бд вернет пустой список, то вывести предупреждение пользователю
+    db = DataBaseEditor()
+    citysearch = db.check_city_isinstance(city)
+    db.close_connection()
+    del db
     await message.answer(f"Ваш город: {city}")
     if citysearch is None:
         await message.answer("Упс\nВ данном городе сервис PrintDocCloud не работает,"
