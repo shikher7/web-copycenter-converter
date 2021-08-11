@@ -1,6 +1,8 @@
 import datetime
+
+import PyPDF2
 from PIL import Image
-from database_editor import DataBaseEditor
+from BackEnd.database_editor import DataBaseEditor
 
 import img2pdf
 import sys
@@ -19,6 +21,13 @@ html_template = '<!DOCTYPE html>' \
                 '</head>' \
                 '<body></body>' \
                 '</html>'
+ROOT_DIR = os.path.abspath('../')
+
+
+def count_pages(file):
+    with open(file, 'rb') as pdf_file:
+        pdf_reader = PyPDF2.PdfFileReader(pdf_file)
+        return pdf_reader.getNumPages()
 
 
 class PageSizeException(BaseException):
@@ -57,7 +66,7 @@ class PageSize:
         self.__page_size = self.__formats_list_size[format_file]
         self.__file_type = self.__set_file_type()
         self.__file_name = self.__find_file_name()
-        self.__out_put_path = os.path.join(os.path.curdir, f'{format_file}', self.get_date_suffix(),
+        self.__out_put_path = os.path.join(ROOT_DIR, f'{format_file}', self.get_date_suffix(),
                                            self.get_time_suffix(), self.get_file_type())
 
     def set_page_size(self, new_size):
@@ -109,17 +118,17 @@ class PageSize:
     def get_output_name(self):
         return ''.join([self.get_file_name(), '_', self.get_date_suffix()])
 
-    # def insert_to_data_base(self):
-    #     user_id = self.get_file_name().split('_')[0]
-    #     options_for_printer = ''
-    #     file_path = os.path.join(self.get_output_path(), self.get_output_name() + '.pdf')
-    #     user_data_base_row = DataBaseEditor()
-    #     user_data_base_row.insert_into_users(user_id,
-    #                                          self.get_file_type(),
-    #                                          10.2,
-    #                                          datetime.datetime.now().strftime('%d.%m.%y'))
-    #     values = (user_id, options_for_printer, file_path)
-        # user_data_base_row.insert_into_users_has_files(values)
+    def insert_to_data_base(self, pages_count, out_put_path):
+        user_id = self.get_file_name().split('_')[0]
+        options_for_printer = ''
+        file_path = out_put_path
+        user_data_base_row = DataBaseEditor()
+        new_id = user_data_base_row.get_last_id_into_users_has_files() + 1
+        file_type = self.get_file_type()
+        request_time = datetime.datetime.now().time().strftime("%H:%M:%S")
+        request_date = datetime.datetime.now().date().strftime("%Y-%m-%d")
+        values = (new_id, options_for_printer, pages_count, file_path, file_type, request_time, request_date)
+        user_data_base_row.insert_user(user_id, values)
 
 
 class ImageConverter(PageSize):
@@ -148,7 +157,6 @@ class ImageConverter(PageSize):
         return canvas_image
 
     def convert_to_pdf(self):
-        # self.insert_to_data_base()
         canvas_image = self.__calculate_new_image_size()
         try:
             from pathlib import Path
@@ -158,6 +166,8 @@ class ImageConverter(PageSize):
             print('Directory already exists')
         canvas_image.save(
             os.path.join(self.get_output_path(), self.get_output_name() + '.pdf'), format='PDF', quality=200)
+        pages_count = count_pages(os.path.join(self.get_output_path(), self.get_output_name() + '.pdf'))
+        self.insert_to_data_base(pages_count, os.path.join(self.get_output_path(), self.get_output_name() + '.pdf'))
 
 
 class LibreOfficeError(Exception):
@@ -182,11 +192,13 @@ class OfficeConverter(PageSize):
                 self.get_file_path()]
         process = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
         filename = re.search('-> (.*?) using filter', process.stdout.decode())
-
         if filename is None:
             raise LibreOfficeError(process.stdout.decode())
         else:
-            return filename.group(1)
+            result = filename.group(1)
+            pages_count = count_pages(result)
+            self.insert_to_data_base(pages_count, result)
+            return result
 
 
 def exception_files2pdf(file_path, file_format, exception):
@@ -200,11 +212,11 @@ def exception_files2pdf(file_path, file_format, exception):
     except FileExistsError:
         print('Directory already exists')
     output_path = os.path.join(file.get_output_path(), file.get_output_name() + '.pdf')
-    return file_path, output_path
+    return file_path, output_path, file
 
 
 def txt2pdf(input_path, file_format, exception, arg='-o'):
-    file_path, output_path = exception_files2pdf(input_path, file_format, exception=exception)
+    file_path, output_path, page_size_object = exception_files2pdf(input_path, file_format, exception=exception)
     new_txt_format = ''
     with open(file_path, 'r') as txt_file:
         lines = txt_file.readlines()
@@ -220,14 +232,22 @@ def txt2pdf(input_path, file_format, exception, arg='-o'):
         print("ERROR: %s - %s." % (e.filename, e.strerror))
     with open(html_file_path, 'w') as txt2html_file:
         txt2html_file.write(new_txt_format)
-    return pdfkit.from_file(html_file_path, output_path)
+    result = pdfkit.from_file(html_file_path, output_path)
+    pages_count = count_pages(output_path)
+    page_size_object.insert_to_data_base(pages_count, output_path)
+    return result
 
 
 def save_pdf(input_file):
-    file_path, output_path = exception_files2pdf(input_file, exception='pdf', file_format='A4')
+    file_path, output_path, page_size_object = exception_files2pdf(input_file, exception='pdf', file_format='A4')
     shutil.move(file_path, output_path)
+    pages_count = count_pages(output_path)
+    page_size_object.insert_to_data_base(pages_count, output_path)
 
 
 def html2pdf(input_path, file_format, exception):
-    file_path, output_path = exception_files2pdf(input_path, file_format, exception=exception)
-    return pdfkit.from_file(file_path, output_path)
+    file_path, output_path, page_size_object = exception_files2pdf(input_path, file_format, exception=exception)
+    result = pdfkit.from_file(file_path, output_path)
+    pages_count = count_pages(output_path)
+    page_size_object.insert_to_data_base(pages_count, output_path)
+    return result

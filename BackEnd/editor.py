@@ -1,9 +1,9 @@
 import os.path
 from dotenv import load_dotenv
 
-from converter import ImageConverter, OfficeConverter, html2pdf, txt2pdf, save_pdf, PageSize
+from BackEnd.converter import ImageConverter, OfficeConverter, html2pdf, txt2pdf, save_pdf, PageSize
 
-ROOT_DIR = os.path.dirname(__file__)
+ROOT_DIR = os.path.abspath('../')
 IMAGE_DIR = os.path.join(ROOT_DIR, 'input_images')
 DOCUMENT_DIR = os.path.join(ROOT_DIR, 'input_documents')
 
@@ -54,13 +54,4 @@ if os.path.exists(dotenv_path):
 DEBUG = bool(int(os.environ.get('DEBUG')))
 if DEBUG:
     if __name__ == '__main__':
-        obj = Editor('A4',
-                     files_path_list=[
-                         '/home/slijirqqq/PycharmProjects/web-copy-center-converter/trash/background.jpg',
-                         '/home/slijirqqq/PycharmProjects/web-copy-center-converter/trash/file-sample_1MB.docx',
-                         '/home/slijirqqq/PycharmProjects/web-copy-center-converter/trash/file-sample_1MB.doc',
-                         '/home/slijirqqq/PycharmProjects/web-copy-center-converter/trash/lol.html',
-                         '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/pngtree-pink-watercolor-brushes-png-image_5054156.jpg',
-                         '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/lol.txt.txt',
-                         '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/index.html'])
-        obj.converting()
+        print(IMAGE_DIR)

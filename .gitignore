@@ -22,8 +22,8 @@
 *.png
 .idea/
 BackEnd/.env
-/BackEnd/input_images/*
-/BackEnd/input_documents/*
+/input_images/*
+/input_documents/*
 /BackEnd/trash/*
 *.pyc
 /__pycache__/*

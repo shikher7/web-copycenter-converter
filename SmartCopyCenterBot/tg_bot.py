@@ -1,12 +1,16 @@
+import os.path
+
 from aiogram import Bot, Dispatcher, executor, types
 from config import API_TOKEN
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from states import reques_city, locat, text_from_user, print_settings, feedback
 from aiogram.dispatcher.storage import FSMContext
-from keyboards import city_select_keyboard, point_select_keyboard, list_buttoncreate_keyboard, upload_select_keyboard, printparam_select_keyboard, print_set_keyboard, pay_keyboard, fdbck_menu_keyboard, menu_keyboard
+from keyboards import city_select_keyboard, point_select_keyboard, list_buttoncreate_keyboard, upload_select_keyboard, \
+    printparam_select_keyboard, print_set_keyboard, pay_keyboard, fdbck_menu_keyboard, menu_keyboard
 from random import randint
 from geolocation_city_search import geoloc_city_search
 from BackEnd.database_editor import DataBaseEditor
+from BackEnd.editor import IMAGE_DIR, DOCUMENT_DIR, Editor
 
 bot = Bot(token=API_TOKEN)
 storage = MemoryStorage()
@@ -35,21 +39,24 @@ async def callback_processing(callback_query: types.CallbackQuery, state: FSMCon
         await locat.street.set()
     elif callback_query.data == 'pointselect_id_type':
         # вытащить адрес по idшнику принтера
-        await bot.send_message(callback_query.from_user.id, "Пока что пусто, на этом этапе работают первая и четвертая кнопка")
+        await bot.send_message(callback_query.from_user.id,
+                               "Пока что пусто, на этом этапе работают первая и четвертая кнопка")
     elif callback_query.data == 'pointselect_favorite_type':
         # вытащить список доступных точек из списка избранных
-        await bot.send_message(callback_query.from_user.id, "Пока что пусто, на этом этапе работают первая и четвертая кнопка")
+        await bot.send_message(callback_query.from_user.id,
+                               "Пока что пусто, на этом этапе работают первая и четвертая кнопка")
     elif callback_query.data == 'pointselect_nearest_type':
         await bot.send_message(callback_query.from_user.id, "Передайте свое местоположение")
         await locat.tmp_location.set()
     elif callback_query.data == "created_streetbtb_call":
         await bot.send_message(callback_query.from_user.id, "Загрузите файл", reply_markup=upload_select_keyboard())
     elif callback_query.data == "choose_upload_type":
-        await bot.send_message(callback_query.from_user.id, ("Загрузи или перешли файл, который ты желаешь распечатать\n\n"
-                                                 "Поддерживаемые форматы (PDF,DOC,DOCX, XLS, XLSX, PPT, PPTX, PNG, "
-                                                 "JPG, JPEG, BMP, EPS, GIF, TXT, RTF, HTML)"))
+        await bot.send_message(callback_query.from_user.id,
+                               ("Загрузи или перешли файл, который ты желаешь распечатать\n\n"
+                                "Поддерживаемые форматы (PDF,DOC,DOCX, XLS, XLSX, PPT, PPTX, PNG, "
+                                "JPG, JPEG, BMP, EPS, GIF, TXT, RTF, HTML)"))
         await text_from_user.user_text.set()
-        #await bot.send_message(callback_query.from_user.id, "Давай настроим параметры на печати, или сразу отправляй документ на печать", reply_markup=printparam_select_keyboard())
+        # await bot.send_message(callback_query.from_user.id, "Давай настроим параметры на печати, или сразу отправляй документ на печать", reply_markup=printparam_select_keyboard())
     # elif callback_query.data == "choose_create_type":
     #     #вопросики касательно того, как реализовать эту штуку, ибо по идее, если вставлять текст в телегу, кроме переноса строки и пробелов все остальное
     #     #форматирование проебется
@@ -68,7 +75,8 @@ async def callback_processing(callback_query: types.CallbackQuery, state: FSMCon
                                                             "Стандартные параметры:\n"
                                                             "Количество копий: 1\n"
                                                             "Двухсторонняя печать: Нет\n"
-                                                            "Отдельные страницы: Весь файл", reply_markup=print_set_keyboard())
+                                                            "Отдельные страницы: Весь файл",
+                               reply_markup=print_set_keyboard())
     elif callback_query.data == "printsettings_count_type":
         await bot.send_message(callback_query.from_user.id, "Введите количеество копий")
         await print_settings.copycount.set()
@@ -87,7 +95,7 @@ async def callback_processing(callback_query: types.CallbackQuery, state: FSMCon
                                                             "Интервал страницы\n\n"
                                                             "Цена - x рублей", reply_markup=pay_keyboard())
     elif callback_query.data == "printsetting_ready_type":
-        #из бдшки подтянуть параметры все
+        # из бдшки подтянуть параметры все
         await bot.send_message(callback_query.from_user.id, "Ваш заказ:\n\n"
                                                             "Количество страниц: x\n"
                                                             "Двусторонняя печать: x\n"
@@ -98,13 +106,12 @@ async def callback_processing(callback_query: types.CallbackQuery, state: FSMCon
         await bot.send_message(callback_query.from_user.id, "Спасибо, что воспользовались нашим сервисом!\n\n"
                                                             "Оставьте обратную связь для улучшения продукта\n"
                                                             "Какую функцию хотели бы видеть?"
-                                                             "Что не понравилось", reply_markup=fdbck_menu_keyboard())
+                                                            "Что не понравилось", reply_markup=fdbck_menu_keyboard())
     elif callback_query.data == 'feedback_btn':
         await bot.send_message(callback_query.from_user.id, "Пожалуйста, напишите свой отзыв")
         await feedback.userfeedback.set()
     elif callback_query.data == 'menu_btn':
         await bot.send_message(callback_query.from_user.id, "Переход в основное меню", reply_markup=menu_keyboard())
-
 
 
 @dp.message_handler(state=reques_city.city)
@@ -115,9 +122,13 @@ async def city_handler(message: types.Message, state: FSMContext):
     db.close_connection()
     del db
     if citysearch is None:
-        await message.answer("Упс\nВ данном городе сервис PrintDocCloud не работает, проверьте "
-                             "еще раз введенный город или посмотрите на карте наши точки")
-        await reques_city.city.set()
+        # await message.answer("Упс\nВ данном городе сервис PrintDocCloud не работает, проверьте "
+        #                      "еще раз введенный город или посмотрите на карте наши точки")
+        await bot.send_message(message.from_user.id, "Упс\nВ данном городе сервис PrintDocCloud не работает, проверьте "
+                                                     "еще раз введенный город или посмотрите на карте наши точки",
+                               reply_markup=city_select_keyboard())
+        # await reques_city.city.set()
+        await state.finish()
     else:
         await state.update_data(city=city)
         await state.finish()
@@ -145,7 +156,6 @@ async def city_handler(message: types.Message, state: FSMContext):
                                reply_markup=point_select_keyboard())
 
 
-
 # Выбор точки по адресу
 @dp.message_handler(state=locat.street)
 async def street_handler(message: types.Message, state: FSMContext):
@@ -170,13 +180,26 @@ async def street_handler(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=text_from_user.user_text, content_types=["document", "photo"])
 async def user_test_handler(message: types.Message, state: FSMContext):
-    #ВОТ СЮДА ВСТАВЛЯТЬ КОД С СКАЧИВАЕНИЕМ ФАЙЛОВ, И ПОЛУЧЕНИЯ ИХ ПУТИ
-    usr_text = message.document #Переменная юзается для того, чтобы хранить путь файла, если не нужен, лучше просто оставь, ибо я не уверен, как оно будет работать
-    #Если файл пройдет проверку и все ок, т.е не будет ошибки для пользователя, то вставь в выполнение последние 3 строки, если будет ошибка, после вывода ошибки
-    #добавь вот эту строчку( await text_from_user.user_text.set() ) чтоб хендлер запустился еще раз
-    await state.update_data(user_text=usr_text)
-    await state.finish()
-    await bot.send_message(message.from_user.id, "Давай настроим параметры на печати, или сразу отправляй документ на печать", reply_markup=printparam_select_keyboard())
+    usr_text = message.document  # Переменная юзается для того, чтобы хранить путь файла, если не нужен, лучше просто оставь, ибо я не уверен, как оно будет работать
+    try:
+        if message.document is None:
+            downloaded_file, src = await get_image(message)
+            mode = IMAGE_DIR
+        else:
+            downloaded_file, src = await get_document(message)
+            mode = DOCUMENT_DIR
+        with open(src, 'wb') as new_file:
+            new_file.write(downloaded_file.getvalue())
+        converting_files_in_dirs(mode)
+        await state.update_data(user_text=usr_text)
+        await state.finish()
+        await bot.send_message(message.from_user.id,
+                               "Давай настроим параметры на печати, или сразу отправляй документ на печать",
+                               reply_markup=printparam_select_keyboard())
+    except Exception as e:
+        await bot.send_message(message.from_user.id, e)
+    # Если файл пройдет проверку и все ок, т.е не будет ошибки для пользователя, то вставь в выполнение последние 3 строки, если будет ошибка, после вывода ошибки
+    # добавь вот эту строчку( await text_from_user.user_text.set() ) чтоб хендлер запустился еще раз
 
 
 @dp.message_handler(state=print_settings.copycount)
@@ -184,7 +207,9 @@ async def user_test_handler(message: types.Message, state: FSMContext):
     copycount = message.text
     await state.update_data(copycount=copycount)
     await state.finish()
-    await bot.send_message(message.from_user.id, "Выбери другие параметры для изменения или 'Готово', если установил все необходимые параметры", reply_markup=print_set_keyboard())
+    await bot.send_message(message.from_user.id,
+                           "Выбери другие параметры для изменения или 'Готово', если установил все необходимые параметры",
+                           reply_markup=print_set_keyboard())
 
 
 @dp.message_handler(state=print_settings.doubleside)
@@ -220,8 +245,44 @@ async def user_test_handler(message: types.Message, state: FSMContext):
     await state.finish()
     await bot.send_message(299723780, "#Отзыв")
     await bot.forward_message(299723780, message.from_user.id, message.message_id)
-    await bot.send_message(message.from_user.id, "Большое спасибо за отзыв!\nПереводим Вас в меню", reply_markup=menu_keyboard())
+    await bot.send_message(message.from_user.id, "Большое спасибо за отзыв!\nПереводим Вас в меню",
+                           reply_markup=menu_keyboard())
 
+
+def update_files_list(mode):
+    files = os.listdir(mode)
+    return [os.path.join(mode, f) for f in files]
+
+
+def converting_files_in_dirs(mode):
+    files = update_files_list(mode)
+    files2pdf = Editor(page_format='A4', files_path_list=files)
+    files2pdf.converting()
+    files = update_files_list(mode)
+    [os.unlink(file) for file in files if file.split('.')[-1] != 'pdf']
+
+
+async def get_document(message):
+    file_contact = message.document.file_id
+    file_name = message.document.file_name
+    root_dir = DOCUMENT_DIR
+    file_info = await bot.get_file(file_contact)
+    downloaded_file = await bot.download_file(file_info.file_path)
+    src = os.path.join(os.path.abspath(root_dir),
+                       ''.join([str(message.from_user.id), '_', file_name]))
+    return downloaded_file, src
+
+
+async def get_image(message):
+    file_contact = message.photo[len(message.photo) - 2].file_id
+    file_name = await bot.get_file(file_contact)
+    file_info = file_name
+    file_name = file_name.file_path.split('/')[-1]
+    root_dir = IMAGE_DIR
+    downloaded_file = await bot.download_file(file_info.file_path)
+    src = os.path.join(os.path.abspath(root_dir),
+                       ''.join([str(message.from_user.id), '_', file_name]))
+    return downloaded_file, src
 
 
 if __name__ == '__main__':
