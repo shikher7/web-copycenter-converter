@@ -1,6 +1,8 @@
 /venv
-/BackEnd/A4/*
+/A4/*
 /A3/*
+/A2/*
+/A1/*
 *.jpeg
 *.jpg
 *.xls
@@ -27,3 +29,4 @@ BackEnd/.env
 /__pycache__/*
 *.db
 /SmartCopyCenterBot/config.py
+./.idea/
