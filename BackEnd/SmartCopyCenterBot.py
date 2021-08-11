@@ -26,7 +26,7 @@ def get_file_info(settings):
 def get_document(message):
     file_contact = message.document.file_id
     file_name = message.document.file_name
-    root_dir = 'input_documents'
+    root_dir = 'BackEnd/input_documents'
     return message, file_contact, root_dir, file_name
 
 
@@ -34,7 +34,7 @@ def get_document(message):
 def get_image(message):
     file_contact = message.photo[len(message.photo) - 2].file_id
     file_name = smartCopyCenterBot.get_file(file_contact).file_path.split('/')[-1]
-    root_dir = 'input_images'
+    root_dir = 'BackEnd/input_images'
     return message, file_contact, root_dir, file_name
 
 
