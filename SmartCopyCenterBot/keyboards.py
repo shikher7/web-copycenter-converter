@@ -75,8 +75,23 @@ def fdbck_menu_keyboard():
     feedback_mn_kb.add(feedback_btn, menu_btn)
     return feedback_mn_kb
 
+
 def menu_keyboard():
     menu_kb = types.ReplyKeyboardMarkup()
     tmp_btn = types.KeyboardButton("Временная кнопка")
     menu_kb.add(tmp_btn)
     return menu_kb
+
+
+def id_select_keyboard(street, house, mark):
+    id_sel_kb = types.InlineKeyboardMarkup()
+    id_btn = types.InlineKeyboardButton(text=f"{street},{house} - {mark}", callback_data="id_input_type")
+    id_sel_kb.add(id_btn)
+    return id_sel_kb
+
+
+def list_buttoncreate_fav_id_keyboard(idlist):
+    button_create_keyboard = types.InlineKeyboardMarkup()
+    button_create_buttons = [types.InlineKeyboardButton(text=x, callback_data=f"created_faividbtn_call_{x}") for x in idlist]
+    button_create_keyboard.add(*button_create_buttons)
+    return button_create_keyboard

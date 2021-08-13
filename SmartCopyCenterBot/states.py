@@ -9,7 +9,7 @@ class locat(StatesGroup):
     reqlocation = State()
     street = State()
     tmp_location = State()
-
+    printer_id_location = State()
 
 class text_from_user(StatesGroup):
     user_text = State()
