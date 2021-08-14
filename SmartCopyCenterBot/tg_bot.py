@@ -6,7 +6,8 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from states import reques_city, locat, text_from_user, print_settings, feedback
 from aiogram.dispatcher.storage import FSMContext
 from keyboards import city_select_keyboard, point_select_keyboard, list_buttoncreate_keyboard, upload_select_keyboard, \
-    printparam_select_keyboard, print_set_keyboard, pay_keyboard, fdbck_menu_keyboard, menu_keyboard, id_select_keyboard, list_buttoncreate_fav_id_keyboard
+    printparam_select_keyboard, print_set_keyboard, pay_keyboard, fdbck_menu_keyboard, menu_keyboard, \
+    id_select_keyboard, list_buttoncreate_fav_id_keyboard
 from random import randint
 from geolocation_city_search import geoloc_city_search
 from BackEnd.database_editor import DataBaseEditor
@@ -14,13 +15,11 @@ from BackEnd.editor import IMAGE_DIR, DOCUMENT_DIR, Editor
 import re
 from nearest_location_searcher import nearest_point_searcher
 
-
 bot = Bot(token=API_TOKEN)
 storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
 streetpattern = "created_streetbtb_call_\d*"
 favidpattern = "created_faividbtn_call_\d*"
-
 
 
 @dp.message_handler(commands=['start'])
@@ -37,28 +36,34 @@ async def callback_processing(callback_query: types.CallbackQuery, state: FSMCon
         await reques_city.city.set()
     # обработка города по геолокации
     elif callback_query.data == 'cityselect_location_type':
-        await bot.send_message(callback_query.from_user.id, "Передайте свою геолокацию")
+        await bot.send_message(callback_query.from_user.id, "Передайте свою местоположение")
         await locat.reqlocation.set()
     elif callback_query.data == 'pointselect_address_type':
         await bot.send_message(callback_query.from_user.id,
                                "Напишите название улицы, на которой стоит принтер\n Например: Карла Маркса")
         await locat.street.set()
-    elif re.search(streetpattern, callback_query.data) != None:
+    elif re.search(streetpattern, callback_query.data) is not None:
         async with state.proxy() as data:
+            city = data['city']  # Пашок тут я думаю нужен и город, надеюсь эта хуйня ничо не сломает
             street = data['street']
         house_num = callback_query.data.replace("created_streetbtb_call_", "")
-        print(street, house_num)
-        #printer_id = mybd.select_info(id from printers where street equals street and house_num) вытаскиваем idшник принтера,
-        #чтобы в дальнейшем работать именно с ним, так как по факту мы выбрали его
+        print(street, house_num)  ##### ЭТО ЧО? Это надо?
+        location = (city, street, house_num)
+        db = DataBaseEditor()
+        printer_id = db.get_printer_by_location(location=location)  # Пашок не полнял нахуя это надо то?
+        db.close_connection()
+        del db
         await state.finish()
         await bot.send_message(callback_query.from_user.id, "Загрузите файл", reply_markup=upload_select_keyboard())
     elif callback_query.data == 'pointselect_id_type':
         await bot.send_message(callback_query.from_user.id, "Введите ID принтера указанный на аппарате")
         await locat.printer_id_location.set()
-        elif callback_query.data == 'pointselect_favorite_type':
+    elif callback_query.data == 'pointselect_favorite_type':
         user_id = callback_query.from_user.id
-        # user_fav_list = mybd.select_info(user_has_printers from users where user_id equals user_id) (не знаю на сколько правильный запрос)
-        # но в общем надо вытащить idшники принтеров, которые юзер добавил в список избранных, по идее это список
+        db = DataBaseEditor()
+        user_fav_list = db.get_favorite_printers_by_users(user_id)
+        db.close_connection()
+        del db
         if user_fav_list is None:
             await bot.send_message(callback_query.from_user.id,
                                    "Ваш список избранного пуст, выберите другой способ поиска принтера",
@@ -68,9 +73,11 @@ async def callback_processing(callback_query: types.CallbackQuery, state: FSMCon
                                    reply_markup=list_buttoncreate_fav_id_keyboard(user_fav_list))
     elif re.search(favidpattern, callback_query.data) is not None:
         prin_id = callback_query.data.replace("created_faividbtn_call_", "")
-        # street = mydb.select_info(street from printers where ID equals print_id), вытаскиваем улицу чтобы положить в клавиатуру
-        # house = mybd.select_info(house from printers where ID equals print_id), вытаскиваем номер дома чтобы положить в клавиатуру
-        # printer_mark = mybd.select_info(printer_mark from printers where ID equals print_id), вытаскиваем марту чтобы положить в клавиатуру
+        db = DataBaseEditor()
+        printer_info = db.get_printer_info_by_id(printer_id=prin_id)
+        street = printer_info['street']
+        house = printer_info['house']
+        printer_mark = printer_info['printer_mark']
         await state.update_data(printer_id_location=prin_id)
         await state.finish()
         await bot.send_message(callback_query.from_user.id, "Точка по заданному ID",
@@ -108,13 +115,13 @@ async def callback_processing(callback_query: types.CallbackQuery, state: FSMCon
                                                             "Отдельные страницы: Весь файл",
                                reply_markup=print_set_keyboard())
     elif callback_query.data == "printsettings_count_type":
-        await bot.send_message(callback_query.from_user.id, "Введите количеество копий")
+        await bot.send_message(callback_query.from_user.id, "Введите количество копий")
         await print_settings.copycount.set()
     elif callback_query.data == "printsetting_doubleside_type":
-        await bot.send_message(callback_query.from_user.id, "Введите 'Да' для включения двустронней печати")
+        await bot.send_message(callback_query.from_user.id, "Введите 'Да' для включения двусторонней печати")
         await print_settings.doubleside.set()
     elif callback_query.data == "printsetting_needpages_type":
-        await bot.send_message(callback_query.from_user.id, "Введите страницы, которые вы хотете распечатать")
+        await bot.send_message(callback_query.from_user.id, "Введите страницы, которые вы хотите распечатать")
         await print_settings.needpages.set()
     elif callback_query.data == "printparam_select_type":
         # из бдшки подтянуть параметры все
@@ -145,6 +152,7 @@ async def callback_processing(callback_query: types.CallbackQuery, state: FSMCon
     elif callback_query.data == "id_input_type":
         await bot.send_message(callback_query.from_user.id, "Загрузите файл", reply_markup=upload_select_keyboard())
 
+
 @dp.message_handler(state=reques_city.city)
 async def city_handler(message: types.Message, state: FSMContext):
     city = message.text
@@ -163,6 +171,8 @@ async def city_handler(message: types.Message, state: FSMContext):
     else:
         await state.update_data(city=city)
         await state.finish()
+        async with state.proxy() as data:
+            data['city'] = city
         await bot.send_message(message.from_user.id, "Выберите принтер для печати удобным вам способом",
                                reply_markup=point_select_keyboard())
 
@@ -183,6 +193,8 @@ async def city_handler(message: types.Message, state: FSMContext):
     else:
         await state.update_data(city=city)
         await state.finish()
+        async with state.proxy() as data:
+            data['city'] = city
         await bot.send_message(message.from_user.id, "Выберите принтер для печати удобным вам способом",
                                reply_markup=point_select_keyboard())
 
@@ -191,43 +203,55 @@ async def city_handler(message: types.Message, state: FSMContext):
 @dp.message_handler(state=locat.street)
 async def street_handler(message: types.Message, state: FSMContext):
     street = message.text
-    # houselist = mybd.select_info(house from printers where street equals street), т.е вытаскивам номера домов по этой улице
-    # в итоге нужно получить список, чтобы засунуть его в клавиатуру
-    if houselist is None:
+    city = str()
+    async with state.proxy() as data:
+        city = data['city']
+    db = DataBaseEditor()
+    house_list = db.get_all_houses_of_street(street=street, city=city)
+    db.close_connection()
+    del db
+    if house_list is None:
         await bot.send_message(message.from_user.id, "К сожалению на данной улице отсутствуют доступные принтеры, "
-                                                     "пожалуйста, воспользуйтесь функцией поиска принтеров по местоположению"
-                                                     " для поиска ближайших к вам точек, или используйте другой удобный метод "
+                                                     "пожалуйста, воспользуйтесь функцией поиска принтеров по "
+                                                     "местоположению "
+                                                     "для поиска ближайших к вам точек, или используйте другой "
+                                                     "удобный метод "
                                                      "поиска принтера.", reply_markup=point_select_keyboard())
         await state.finish()
+        async with state.proxy() as data:
+            data['city'] = city
     else:
         await state.update_data(street=street)
+        await state.finish()
         async with state.proxy() as data:
             data['street'] = message.text
-        await message.answer(f"Локации находяшиеся по этой улице:", reply_markup=list_buttoncreate_keyboard(houselist))
+        await message.answer(f"Локации находящиеся по этой улице:", reply_markup=list_buttoncreate_keyboard(house_list))
 
 
 # Выбор точки по геолокации
 @dp.message_handler(content_types=["location"], state=locat.tmp_location)
 async def street_handler(message: types.Message, state: FSMContext):
-    i = 0
     min_delta = 0.01
     user_locat = [message.location.latitude, message.location.longitude]
-    #coordinat_counts = mydb.select_info(cooridnats from printers).rowcount нужно подсчитать количество строк с координатами для цикла
-    for coord in range(int(coordinat_counts)):
-        #check_coord = mybd.select_info(coordinats from printers where column equal i), т.е я хочу вытащить координаты одной строки в список(по порядку)
-        i += 1
-        delta = nearest_point_searcher(user_locat, check_coord)
+    db = DataBaseEditor()
+    coordinates_of_printers = db.get_all_coords_of_printers_location()
+    nearest_coord = 0
+    for row_index in range(len(coordinates_of_printers)):
+        delta = nearest_point_searcher(user_locat, coordinates_of_printers[row_index])
         if delta > min_delta:
             min_delta = delta
-            nearest_coord = check_coord
-    # street = mydb.select_info(street from printers where coordinats equals nearest_coord), вытаскиваем улицу чтобы положить в клавиатуру
-    # house = mybd.select_info(house from printers where coordinats equals nearest_coord), вытаскиваем номер дома чтобы положить в клавиатуру
-    # printer_mark = mybd.select_info(printer_mark from printers where coordinats equals nearest_coord), вытаскиваем марку чтобы положить в клавиатуру
-    # printer_id =  mydb.select_info(ID from printers where coordinats equals nearest_coord), вытащить idшник для записи в состояние
+            nearest_coord = coordinates_of_printers[row_index]
+    selected_printer = db.get_printer_info_by_coords(nearest_coord)
+    db.close_connection()
+    del db
+    street = selected_printer['street']
+    house = selected_printer['house']
+    printer_mark = selected_printer['printer_mark']
+    printer_id = selected_printer['printer_id']
     await state.update_data(tmp_location=printer_id)
     await state.finish()
-    await bot.send_message(message.from_user.id, "Ближайшая точка к вашей локации: ", reply_markup=id_select_keyboard(street, house, printer_mark))
-
+    await bot.send_message(message.from_user.id, "Ближайшая точка к вашей локации: ",
+                           reply_markup=id_select_keyboard(street, house, printer_mark))
 
 
 @dp.message_handler(state=text_from_user.user_text, content_types=["document", "photo"])
@@ -260,7 +284,8 @@ async def user_test_handler(message: types.Message, state: FSMContext):
     await state.update_data(copycount=copycount)
     await state.finish()
     await bot.send_message(message.from_user.id,
-                           "Выбери другие параметры для изменения или 'Готово', если установил все необходимые параметры",
+                           "Выбери другие параметры для изменения или 'Готово', если установил все необходимые "
+                           "параметры",
                            reply_markup=print_set_keyboard())
 
 
@@ -271,7 +296,8 @@ async def user_test_handler(message: types.Message, state: FSMContext):
     data = await state.get_data()
     await state.finish()
     await bot.send_message(message.from_user.id,
-                           "Выбери другие параметры для изменения или 'Готово', если установил все необходимые параметры",
+                           "Выбери другие параметры для изменения или 'Готово', если установил все необходимые "
+                           "параметры",
                            reply_markup=print_set_keyboard())
 
 
@@ -281,7 +307,8 @@ async def user_test_handler(message: types.Message, state: FSMContext):
     await state.update_data(needpages=needpages)
     await state.finish()
     await bot.send_message(message.from_user.id,
-                           "Выбери другие параметры для изменения или 'Готово', если установил все необходимые параметры",
+                           "Выбери другие параметры для изменения или 'Готово', если установил все необходимые "
+                           "параметры",
                            reply_markup=print_set_keyboard())
 
 
@@ -303,19 +330,26 @@ async def user_test_handler(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=locat.printer_id_location)
 async def user_input_printer_id_handler(message: types.Message, state: FSMContext):
-    prin_id = message.text
-    #printer_id_check = mybd.select_info(ID from printers where ID equals print_id), выполняю выборку для проверки того,
-    #есть ли принтер с таким айдишником
+    printer_id = message.text
+    db = DataBaseEditor()
+    printer_id_check = db.check_printer_is_exists(int(printer_id))
     if printer_id_check is None:
-        await bot.send_message(message.from_user.id, "Принтера с таким ID нет, выберите другой метод выбора принтера,", reply_markup=point_select_keyboard())
+        await bot.send_message(message.from_user.id, "Принтера с таким ID нет, выберите другой метод выбора принтера,",
+                               reply_markup=point_select_keyboard())
         await state.finish()
+        db.close_connection()
+        del db
     else:
-        #street = mydb.select_info(street from printers where ID equals print_id), вытаскиваем улицу чтобы положить в клавиатуру
-        #house = mybd.select_info(house from printers where ID equals print_id), вытаскиваем номер дома чтобы положить в клавиатуру
-        #printer_mark = mybd.select_info(printer_mark from printers where ID equals print_id), вытаскиваем марту чтобы положить в клавиатуру
-        await state.update_data(printer_id_location=prin_id)
+        printer_info_by_id = db.get_printer_info_by_id(int(printer_id))
+        street = printer_info_by_id['street']
+        house = printer_info_by_id['house']
+        printer_mark = printer_info_by_id['printer_mark']
+        db.close_connection()
+        del db
+        await state.update_data(printer_id_location=printer_id)
         await state.finish()
-        await bot.send_message(message.from_user.id, "Точка по заданному ID", reply_markup=id_select_keyboard(street, house, printer_mark))
+        await bot.send_message(message.from_user.id, "Точка по заданному ID",
+                               reply_markup=id_select_keyboard(street, house, printer_mark))
 
 
 def update_files_list(mode):
