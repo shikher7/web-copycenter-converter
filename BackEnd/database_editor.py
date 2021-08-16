@@ -1,13 +1,18 @@
 import datetime
 import logging
 import sqlite3
+import os
+
+# file constants of root
+PROJECT_ROOT = os.path.abspath('/home/slijirqqq/PycharmProjects/web-copy-center-converter')
+DATABASE_ROOT = os.path.join(PROJECT_ROOT, 'users_key_files.db')
 
 
 class DataBaseEditor:
     def __init__(self):
         logging.getLogger().setLevel(logging.INFO)
         try:
-            self.connection = sqlite3.connect('../users_key_files.db')
+            self.connection = sqlite3.connect(DATABASE_ROOT)
             cursor = self.connection.cursor()
             logging.info("""!!! База данных успешно подключена !!!""")
             cursor.execute("select sqlite_version();")
@@ -22,6 +27,8 @@ class DataBaseEditor:
     def __create_tables_if_not_exists(self):
         cursor = self.connection.cursor()
         cursor.execute("""PRAGMA foreign_keys=on;""")
+        logging.info("""!!! Создание таблиц к базе данных !!!""")
+        start_time = datetime.datetime.now()
         cursor.execute("""CREATE TABLE IF NOT EXISTS users_has_files (
                                                                         ID INTEGER PRIMARY KEY UNIQUE NOT NULL,
                                                                         printer_options TEXT DEFAULT '',
@@ -45,9 +52,11 @@ class DataBaseEditor:
                                                                 cost_by_list decimal(10, 2) NOT NULL,
                                                                 city TEXT NOT NULL,
                                                                 street TEXT NOT NULL,
-                                                                house INTEGER NOT NULL,
+                                                                house TEXT NOT NULL,
                                                                 printer_mark TEXT NOT NULL,
-                                                                option_of_print INTEGER(1) DEFAULT 0
+                                                                option_of_print INTEGER(1) DEFAULT 0,
+                                                                x_coordinate decimal(9, 6) NOT NULL,
+                                                                y_coordinate decimal(9, 6) NOT NULL 
                                                                 );
                             """)
 
@@ -59,10 +68,21 @@ class DataBaseEditor:
                                                                       FOREIGN KEY (printer_id) REFERENCES printers(ID)
                                                                           );
                                     """)
+
+        cursor.execute("""
+                        CREATE TRIGGER IF NOT EXISTS users_after_delete AFTER DELETE on users_has_files
+                            BEGIN
+                                delete from users where users.row_id=old.ID;
+                            END;
+                        """)
+
         self.connection.commit()
+        end_time = datetime.datetime.now()
+        logging.info("!!! Процесс создания таблиц завершен за {} c. !!!".format((end_time - start_time).seconds))
         cursor.close()
 
     def __clear_tables_where_date_some_older(self, max_days=2):
+        logging.info("""!!! Очистка старых данных !!!""")
         cursor = self.connection.cursor()
         cursor.execute("""
                             SELECT request_date from users_has_files;
@@ -70,6 +90,8 @@ class DataBaseEditor:
         dates = cursor.fetchall()
         deleted_dates = [date[0] for date in dates if
                          (datetime.datetime.now() - datetime.datetime.strptime(date[0], "%Y-%m-%d")).days > max_days]
+        if deleted_dates:
+            logging.info("""!!! Удаляется {} строк !!!""".format(len(deleted_dates)))
         for date in deleted_dates:
             cursor.execute(f"""
                                 DELETE FROM users_has_files where request_date=?;
@@ -134,6 +156,7 @@ class DataBaseEditor:
                         select ID from printers where city=? and street=? and house=?;
                         """, location)
         printer_id = cursor.fetchall()
+        cursor.close()
         if printer_id:
             return printer_id[0][0]
         return None
@@ -195,5 +218,4 @@ class DataBaseEditor:
 
 
 if __name__ == '__main__':
-    obj = DataBaseEditor()
-    print(obj.get_printer_info_by_coords((1, 2)))
+    database_object = DataBaseEditor()

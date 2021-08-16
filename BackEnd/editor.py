@@ -8,6 +8,19 @@ IMAGE_DIR = os.path.join(ROOT_DIR, 'input_images')
 DOCUMENT_DIR = os.path.join(ROOT_DIR, 'input_documents')
 
 
+class EditorError(BaseException):
+    pass
+
+
+class FileTypeIsNotExists(EditorError):
+    def __init__(self, file_type, file_types_list):
+        self.file_type = file_type
+        self.file_types_list = file_types_list
+
+    def __str__(self):
+        return f"!!! Данный тип файла {self.file_type} не входит в список допустимых {self.file_types_list} !!!"
+
+
 class Editor:
     __distributor = {
         'png': ImageConverter,
@@ -41,6 +54,8 @@ class Editor:
             html2pdf(file_path, self.__page_format, exception=extension)
         elif extension == 'pdf':
             save_pdf(file_path)
+        else:
+            raise FileTypeIsNotExists(extension, self.__distributor.keys())
 
     def converting(self):
         for file_path in self.__files_path_list:

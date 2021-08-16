@@ -11,7 +11,7 @@ from keyboards import city_select_keyboard, point_select_keyboard, list_buttoncr
 from random import randint
 from geolocation_city_search import geoloc_city_search
 from BackEnd.database_editor import DataBaseEditor
-from BackEnd.editor import IMAGE_DIR, DOCUMENT_DIR, Editor
+from BackEnd.editor import IMAGE_DIR, DOCUMENT_DIR, Editor, FileTypeIsNotExists
 import re
 from nearest_location_searcher import nearest_point_searcher
 
@@ -44,10 +44,10 @@ async def callback_processing(callback_query: types.CallbackQuery, state: FSMCon
         await locat.street.set()
     elif re.search(streetpattern, callback_query.data) is not None:
         async with state.proxy() as data:
-            city = data['city']  # Пашок тут я думаю нужен и город, надеюсь эта хуйня ничо не сломает
+            city = data['city']
             street = data['street']
         house_num = callback_query.data.replace("created_streetbtb_call_", "")
-        print(street, house_num)  ##### ЭТО ЧО? Это надо?
+        # print(street, house_num)  ##### ЭТО ЧО? Это надо?
         location = (city, street, house_num)
         db = DataBaseEditor()
         printer_id = db.get_printer_by_location(location=location)  # Пашок не полнял нахуя это надо то?
@@ -262,6 +262,11 @@ async def user_test_handler(message: types.Message, state: FSMContext):
             downloaded_file, src = await get_image(message)
             mode = IMAGE_DIR
         else:
+            document_types = ['PDF', 'DOC', 'DOCX', 'XLS', 'XLSX', 'PPT',
+                              'PPTX', 'TXT', 'RTF', 'HTML']
+            current_type = message.document.file_name.split('.')[-1].upper()
+            if current_type not in document_types:
+                raise FileTypeIsNotExists(current_type, document_types)
             downloaded_file, src = await get_document(message)
             mode = DOCUMENT_DIR
         with open(src, 'wb') as new_file:
@@ -272,10 +277,11 @@ async def user_test_handler(message: types.Message, state: FSMContext):
         await bot.send_message(message.from_user.id,
                                "Давай настроим параметры на печати, или сразу отправляй документ на печать",
                                reply_markup=printparam_select_keyboard())
-    except Exception as e:
-        await bot.send_message(message.from_user.id, e)
-    # Если файл пройдет проверку и все ок, т.е не будет ошибки для пользователя, то вставь в выполнение последние 3 строки, если будет ошибка, после вывода ошибки
-    # добавь вот эту строчку( await text_from_user.user_text.set() ) чтоб хендлер запустился еще раз
+    except FileTypeIsNotExists as e:
+        await bot.send_message(message.from_user.id, "К сожалению я не могу принять ваш файл."
+                                                     "Попробуйте загрузить другой файл, или попробуйте заново."
+                                                     "Ошибка обработки файла: \n{}".format(e))
+        await text_from_user.user_text.set()
 
 
 @dp.message_handler(state=print_settings.copycount)
