@@ -18,7 +18,7 @@ from nearest_location_searcher import nearest_point_searcher
 bot = Bot(token=API_TOKEN)
 storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
-streetpattern = "created_streetbtbcall\d*."
+streetpattern = "created_streetbtb_call_\d*."
 favidpattern = "created_faividbtn_call_\d*"
 
 
@@ -28,7 +28,7 @@ async def user_location(message: types.Message):
                            reply_markup=city_select_keyboard())
 
 
-@dp.callback_query_handler(lambda call: True)
+@dp.callback_query_handler(lambda call: True, state="*")
 async def callback_processing(callback_query: types.CallbackQuery, state: FSMContext):
     # обработка текстового ввода города
     if callback_query.data == 'cityselect_text_type':
@@ -190,7 +190,7 @@ async def city_handler(message: types.Message, state: FSMContext):
         await state.finish()
     else:
         await state.update_data(city=city)
-        await state.finish()
+        await reques_city.next()
         async with state.proxy() as data:
             data['city'] = city
         await bot.send_message(message.from_user.id, "Выберите принтер для печати удобным вам способом",
@@ -242,7 +242,7 @@ async def street_handler(message: types.Message, state: FSMContext):
             data['city'] = city
     else:
         await state.update_data(street=street)
-        await state.finish()
+        await locat.next()
         async with state.proxy() as data:
             data['street'] = street
         await message.answer(f"Локации находящиеся по этой улице:", reply_markup=list_buttoncreate_keyboard(house_list))
