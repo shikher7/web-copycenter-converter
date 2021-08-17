@@ -31,12 +31,15 @@ class DataBaseEditor:
         start_time = datetime.datetime.now()
         cursor.execute("""CREATE TABLE IF NOT EXISTS users_has_files (
                                                                         ID INTEGER PRIMARY KEY UNIQUE NOT NULL,
-                                                                        printer_options TEXT DEFAULT '',
                                                                         pages_count INTEGER NOT NULL,
                                                                         file_path TEXT NOT NULL,
                                                                         file_type TEXT NOT NULL,
                                                                         request_time TIMESTAMP NOT NULL,
-                                                                        request_date DATE NOT NULL
+                                                                        request_date DATE NOT NULL,
+                                                                        need_pages TEXT NOT NULL DEFAULT 'Все',
+                                                                        copy_count INTEGER NOT NULL DEFAULT 0,
+                                                                        double_pages INTEGER(1) NOT NULL DEFAULT 0,
+                                                                        done INTEGER(1) DEFAULT 0
                                                                         );
                             """)
 
@@ -196,9 +199,9 @@ class DataBaseEditor:
         cursor.execute("""
                         select ID from printers where ID = ?;
                         """, (user_printer_id,))
-        printer_is_exists = cursor.fetchone()
+        printer_is_exists = cursor.fetchall()
         cursor.close()
-        if printer_is_exists is not None:
+        if printer_is_exists:
             return printer_is_exists[0]
         return printer_is_exists
 
@@ -213,9 +216,42 @@ class DataBaseEditor:
             return [x[0] for x in indexes_of_printers]
         return None
 
+    def get_double_side_by_printer_id(self, printer_id):
+        cursor = self.connection.cursor()
+        cursor.execute("""
+                        select option_of_print from printers where ID = ?;
+                        """, (printer_id,))
+        double_side = cursor.fetchall()
+        cursor.close()
+        if double_side:
+            return double_side[0][0]
+        return double_side
+
+    def get_page_count_and_price(self, user_id, printer_id):
+        cursor = self.connection.cursor()
+        cursor.execute("""
+                        select row_id from users where user_id = ?
+                        """, (user_id, ))
+        rows = cursor.fetchall()
+        current_date = datetime.datetime.now().date().strftime("%Y-%m-%d")
+        pages_count = []
+        for row in rows:
+            cursor.execute("""
+                            select pages_count from users_has_files where ID=? and request_date=?;
+                            """, (row[0], "2021-08-15"))
+            pages_count = cursor.fetchall()
+            if pages_count:
+                pages_count = pages_count[0][0]
+                break
+        cursor.execute("""
+                        select cost_by_list from printers where ID=?;
+                        """, (printer_id, ))
+        printer_price_by_list = cursor.fetchall()[0][0]
+
     def close_connection(self):
         self.connection.close()
 
 
 if __name__ == '__main__':
     database_object = DataBaseEditor()
+    database_object.get_page_count_and_price(422115106, 0)

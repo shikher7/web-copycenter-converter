@@ -1,14 +1,14 @@
 import os.path
 
 from aiogram import Bot, Dispatcher, executor, types
-from config import API_TOKEN
+from config import API_TOKEN, PAYMENTS_PROVIDER_TOKEN
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from states import reques_city, locat, text_from_user, print_settings, feedback
 from aiogram.dispatcher.storage import FSMContext
 from keyboards import city_select_keyboard, point_select_keyboard, list_buttoncreate_keyboard, upload_select_keyboard, \
     printparam_select_keyboard, print_set_keyboard, pay_keyboard, fdbck_menu_keyboard, menu_keyboard, \
     id_select_keyboard, list_buttoncreate_fav_id_keyboard
-from random import randint
+from aiogram.types.message import ContentType
 from geolocation_city_search import geoloc_city_search
 from BackEnd.database_editor import DataBaseEditor
 from BackEnd.editor import IMAGE_DIR, DOCUMENT_DIR, Editor, FileTypeIsNotExists
@@ -18,7 +18,7 @@ from nearest_location_searcher import nearest_point_searcher
 bot = Bot(token=API_TOKEN)
 storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
-streetpattern = "created_streetbtb_call_\d*"
+streetpattern = "created_streetbtbcall\d*."
 favidpattern = "created_faividbtn_call_\d*"
 
 
@@ -47,13 +47,13 @@ async def callback_processing(callback_query: types.CallbackQuery, state: FSMCon
             city = data['city']
             street = data['street']
         house_num = callback_query.data.replace("created_streetbtb_call_", "")
-        # print(street, house_num)  ##### ЭТО ЧО? Это надо?
         location = (city, street, house_num)
         db = DataBaseEditor()
         printer_id = db.get_printer_by_location(location=location)  # Пашок не полнял нахуя это надо то?
         db.close_connection()
         del db
-        await state.finish()
+        async with state.proxy() as data:
+            data["printer_id"] = printer_id
         await bot.send_message(callback_query.from_user.id, "Загрузите файл", reply_markup=upload_select_keyboard())
     elif callback_query.data == 'pointselect_id_type':
         await bot.send_message(callback_query.from_user.id, "Введите ID принтера указанный на аппарате")
@@ -79,41 +79,43 @@ async def callback_processing(callback_query: types.CallbackQuery, state: FSMCon
         house = printer_info['house']
         printer_mark = printer_info['printer_mark']
         await state.update_data(printer_id_location=prin_id)
-        await state.finish()
+        async with state.proxy() as data:
+            data["printer_id"] = prin_id
         await bot.send_message(callback_query.from_user.id, "Точка по заданному ID",
                                reply_markup=id_select_keyboard(street, house, printer_mark))
     elif callback_query.data == 'pointselect_nearest_type':
         await bot.send_message(callback_query.from_user.id, "Передайте свое местоположение")
         await locat.tmp_location.set()
-    elif callback_query.data == "created_streetbtb_call":
-        await bot.send_message(callback_query.from_user.id, "Загрузите файл", reply_markup=upload_select_keyboard())
     elif callback_query.data == "choose_upload_type":
         await bot.send_message(callback_query.from_user.id,
                                ("Загрузи или перешли файл, который ты желаешь распечатать\n\n"
                                 "Поддерживаемые форматы (PDF,DOC,DOCX, XLS, XLSX, PPT, PPTX, PNG, "
                                 "JPG, JPEG, BMP, EPS, GIF, TXT, RTF, HTML)"))
         await text_from_user.user_text.set()
-        # await bot.send_message(callback_query.from_user.id, "Давай настроим параметры на печати, или сразу отправляй документ на печать", reply_markup=printparam_select_keyboard())
-    # elif callback_query.data == "choose_create_type":
-    #     #вопросики касательно того, как реализовать эту штуку, ибо по идее, если вставлять текст в телегу, кроме переноса строки и пробелов все остальное
-    #     #форматирование проебется
-    #     await bot.send_message(callback_query.from_user.id, "Напиши текст, который хочешь отправить\n"
-    #                            "*Из этого текста будет создан текстовый файл для распечатки")
-    #     await text_from_user.user_text.set()
-    elif callback_query.data == "printparam_select_type":
-        await bot.send_message(callback_query.from_user.id, "Ваш заказ:\n\n"
-                                                            "Количество страниц: x\n"
-                                                            "Двусторонняя печать: x\n"
-                                                            "Количество копий\n"
-                                                            "Интервал страницы\n\n"
-                                                            "Цена - x рублей", reply_markup=pay_keyboard())
     elif callback_query.data == "printparam_set_type":
-        await bot.send_message(callback_query.from_user.id, "Выберете параметры, которые вы хотите изменить\n"
-                                                            "Стандартные параметры:\n"
-                                                            "Количество копий: 1\n"
-                                                            "Двухсторонняя печать: Нет\n"
-                                                            "Отдельные страницы: Весь файл",
-                               reply_markup=print_set_keyboard())
+        async with state.proxy() as data:
+            printer_id = data["printer_id"]
+        db = DataBaseEditor()
+        double_side = db.get_double_side_by_printer_id(printer_id)
+        db.close_connection()
+        del db
+        async with state.proxy() as data:
+            data["double_side"] = double_side
+        if not double_side:
+            await bot.send_message(callback_query.from_user.id, "Выберете параметры, которые вы хотите изменить\n"
+                                                                "\n*Возможность двухсторонней печати недоступна на данном принтере\n"
+                                                                "Стандартные параметры:\n"
+                                                                "Количество копий: 1\n"
+                                                                "Двухсторонняя печать: Нет\n"
+                                                                "Отдельные страницы: Весь файл",
+                                   reply_markup=print_set_keyboard(double_side))
+        else:
+            await bot.send_message(callback_query.from_user.id, "Выберете параметры, которые вы хотите изменить\n"
+                                                                "Стандартные параметры:\n"
+                                                                "Количество копий: 1\n"
+                                                                "Двухсторонняя печать: Нет\n"
+                                                                "Отдельные страницы: Весь файл",
+                                   reply_markup=print_set_keyboard(double_side))
     elif callback_query.data == "printsettings_count_type":
         await bot.send_message(callback_query.from_user.id, "Введите количество копий")
         await print_settings.copycount.set()
@@ -123,27 +125,48 @@ async def callback_processing(callback_query: types.CallbackQuery, state: FSMCon
     elif callback_query.data == "printsetting_needpages_type":
         await bot.send_message(callback_query.from_user.id, "Введите страницы, которые вы хотите распечатать")
         await print_settings.needpages.set()
-    elif callback_query.data == "printparam_select_type":
-        # из бдшки подтянуть параметры все
-        await bot.send_message(callback_query.from_user.id, "Ваш заказ:\n\n"
-                                                            "Количество страниц: x\n"
-                                                            "Двусторонняя печать: x\n"
-                                                            "Количество копий\n"
-                                                            "Интервал страницы\n\n"
-                                                            "Цена - x рублей", reply_markup=pay_keyboard())
-    elif callback_query.data == "printsetting_ready_type":
-        # из бдшки подтянуть параметры все
-        await bot.send_message(callback_query.from_user.id, "Ваш заказ:\n\n"
-                                                            "Количество страниц: x\n"
-                                                            "Двусторонняя печать: x\n"
-                                                            "Количество копий\n"
-                                                            "Интервал страницы\n\n"
-                                                            "Цена - x рублей", reply_markup=pay_keyboard())
-    elif callback_query.data == "pay_type":
-        await bot.send_message(callback_query.from_user.id, "Спасибо, что воспользовались нашим сервисом!\n\n"
-                                                            "Оставьте обратную связь для улучшения продукта\n"
-                                                            "Какую функцию хотели бы видеть?"
-                                                            "Что не понравилось", reply_markup=fdbck_menu_keyboard())
+    elif callback_query.data == "printparam_select_type" or callback_query.data == "printsetting_ready_type":
+        async with state.proxy() as data:
+            try:
+                copycount = data[
+                    "copycount"]  # параметр для передачи количества копий, если не указывается пользователем
+                # ставится дефолтное значение
+            except:
+                copycount = 1
+            try:
+                needpages = data["needpages"]  # параметр для передачи нужных страниц,
+                # если не указывается пользователем ставится дефолтное значение
+            except:
+                needpages = "Все"
+            try:
+                double_side_choose = data[
+                    "double_side_choose"]  # параметр для отображения, выбрал чел двустронную печать или нет,
+                # если не указывается пользователем
+                # ставится дефолтное значение
+            except:
+                double_side_choose = "Нет"
+        user_id = callback_query.from_user.id
+
+        await bot.send_message(user_id, f"Ваш заказ:\n\n"
+                                                            f"Количество страниц: {0}\n"
+                                                            f"Двусторонняя печать: {double_side_choose}\n"
+                                                            f"Количество копий: {copycount}\n"
+                                                            f"Выбранные страницы: {needpages}\n\n"
+                                                            "Цена - x рублей")
+        # кнопка для оплаты
+        price = 50000  # цена пока просто фо фан стоит, но после подсчета, в нее запихнем полученное значение, дальше оно само все сделает
+        PRICE = types.LabeledPrice(label="Оплатить", amount=price)
+        await bot.send_invoice(
+            callback_query.from_user.id,
+            title="Оплатить",
+            description="Оплата услуг",
+            provider_token=PAYMENTS_PROVIDER_TOKEN,
+            currency='rub',
+            is_flexible=False,  # True если конечная цена зависит от способа доставки
+            prices=[PRICE],
+            start_parameter='time-machine-example',
+            payload='some-invoice-payload-for-our-internal-use'  # идентификация инвойса
+        )
     elif callback_query.data == 'feedback_btn':
         await bot.send_message(callback_query.from_user.id, "Пожалуйста, напишите свой отзыв")
         await feedback.userfeedback.set()
@@ -161,12 +184,9 @@ async def city_handler(message: types.Message, state: FSMContext):
     db.close_connection()
     del db
     if citysearch is None:
-        # await message.answer("Упс\nВ данном городе сервис PrintDocCloud не работает, проверьте "
-        #                      "еще раз введенный город или посмотрите на карте наши точки")
         await bot.send_message(message.from_user.id, "Упс\nВ данном городе сервис PrintDocCloud не работает, проверьте "
                                                      "еще раз введенный город или посмотрите на карте наши точки",
                                reply_markup=city_select_keyboard())
-        # await reques_city.city.set()
         await state.finish()
     else:
         await state.update_data(city=city)
@@ -224,7 +244,7 @@ async def street_handler(message: types.Message, state: FSMContext):
         await state.update_data(street=street)
         await state.finish()
         async with state.proxy() as data:
-            data['street'] = message.text
+            data['street'] = street
         await message.answer(f"Локации находящиеся по этой улице:", reply_markup=list_buttoncreate_keyboard(house_list))
 
 
@@ -250,6 +270,8 @@ async def street_handler(message: types.Message, state: FSMContext):
     printer_id = selected_printer['printer_id']
     await state.update_data(tmp_location=printer_id)
     await state.finish()
+    async with state.proxy() as data:
+        data["printer_id"] = printer_id
     await bot.send_message(message.from_user.id, "Ближайшая точка к вашей локации: ",
                            reply_markup=id_select_keyboard(street, house, printer_mark))
 
@@ -288,34 +310,43 @@ async def user_test_handler(message: types.Message, state: FSMContext):
 async def user_test_handler(message: types.Message, state: FSMContext):
     copycount = message.text
     await state.update_data(copycount=copycount)
-    await state.finish()
+    async with state.proxy() as data:
+        double_side = data["double_side"]
+        data["copycount"] = copycount
     await bot.send_message(message.from_user.id,
                            "Выбери другие параметры для изменения или 'Готово', если установил все необходимые "
                            "параметры",
-                           reply_markup=print_set_keyboard())
+                           reply_markup=print_set_keyboard(double_side))
 
 
 @dp.message_handler(state=print_settings.doubleside)
 async def user_test_handler(message: types.Message, state: FSMContext):
     answer = message.text
     await state.update_data(doubleside=answer)
-    data = await state.get_data()
-    await state.finish()
+    if answer.lower() == "да":
+        double_side_choose = "Да"
+    else:
+        double_side_choose = "Нет"
+    async with state.proxy() as data:
+        data["double_side_choose"] = double_side_choose
+        double_side = data["double_side"]
     await bot.send_message(message.from_user.id,
                            "Выбери другие параметры для изменения или 'Готово', если установил все необходимые "
                            "параметры",
-                           reply_markup=print_set_keyboard())
+                           reply_markup=print_set_keyboard(double_side))
 
 
 @dp.message_handler(state=print_settings.needpages)
 async def user_test_handler(message: types.Message, state: FSMContext):
     needpages = [message.text]
     await state.update_data(needpages=needpages)
-    await state.finish()
+    async with state.proxy() as data:
+        double_side = data["double_side"]
+        data["needpages"] = needpages
     await bot.send_message(message.from_user.id,
                            "Выбери другие параметры для изменения или 'Готово', если установил все необходимые "
                            "параметры",
-                           reply_markup=print_set_keyboard())
+                           reply_markup=print_set_keyboard(double_side))
 
 
 @dp.message_handler(state=feedback.userfeedback)
@@ -340,7 +371,8 @@ async def user_input_printer_id_handler(message: types.Message, state: FSMContex
     db = DataBaseEditor()
     printer_id_check = db.check_printer_is_exists(int(printer_id))
     if printer_id_check is None:
-        await bot.send_message(message.from_user.id, "Принтера с таким ID нет, выберите другой метод выбора принтера,",
+        await bot.send_message(message.from_user.id,
+                               "Принтера с таким ID нет, выберите другой метод выбора принтера,",
                                reply_markup=point_select_keyboard())
         await state.finish()
         db.close_connection()
@@ -353,9 +385,25 @@ async def user_input_printer_id_handler(message: types.Message, state: FSMContex
         db.close_connection()
         del db
         await state.update_data(printer_id_location=printer_id)
-        await state.finish()
         await bot.send_message(message.from_user.id, "Точка по заданному ID",
                                reply_markup=id_select_keyboard(street, house, printer_mark))
+
+
+@dp.pre_checkout_query_handler(lambda query: True)
+async def process_pre_checkout_query(pre_checkout_query: types.PreCheckoutQuery):
+    await bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
+
+
+@dp.message_handler(content_types=ContentType.SUCCESSFUL_PAYMENT)
+async def process_successful_payment(message: types.Message):
+    print('successful_payment:')
+    pay_details = message.successful_payment.to_python()
+    for key, val in pay_details.items():
+        print(f'{key} = {val}')
+    await bot.send_message(message.chat.id, "Оплата прошла успешно\n"
+                                            "Спасибо, что воспользовались нашили услугами\n"
+                                            "Мы были бы признательны за ваш отзыв или вы можете перейте в главное меню",
+                           reply_markup=fdbck_menu_keyboard())
 
 
 def update_files_list(mode):

@@ -51,13 +51,17 @@ def printparam_select_keyboard():
     return param_select_kb
 
 
-def print_set_keyboard():
+def print_set_keyboard(double_side):
     print_settings_kb = types.InlineKeyboardMarkup(resize_keyboard=True)
     print_settings_copycount = types.InlineKeyboardButton("Количество копий", callback_data="printsettings_count_type")
     print_settings_doubleside = types.InlineKeyboardButton("Двухстронняя печать", callback_data="printsetting_doubleside_type")
     print_settings_needpages = types.InlineKeyboardButton("Выбор отдельных страниц", callback_data="printsetting_needpages_type")
     print_settings_ready = types.InlineKeyboardButton("Готово", callback_data="printsetting_ready_type")
-    print_settings_kb.row(print_settings_copycount).add(print_settings_doubleside, print_settings_needpages).row(print_settings_ready)
+    if double_side == 0:
+        print_settings_kb.row(print_settings_copycount).add(print_settings_needpages).row(print_settings_ready)
+    else:
+        print_settings_kb.row(print_settings_copycount).add(print_settings_doubleside, print_settings_needpages).row(
+            print_settings_ready)
     return print_settings_kb
 
 
