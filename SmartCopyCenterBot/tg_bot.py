@@ -18,7 +18,7 @@ from nearest_location_searcher import nearest_point_searcher
 bot = Bot(token=API_TOKEN)
 storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
-streetpattern = "created_streetbtb_call_\d*."
+streetpattern = "created_streetbtb_call_\d*"
 favidpattern = "created_faividbtn_call_\d*"
 
 
@@ -49,7 +49,7 @@ async def callback_processing(callback_query: types.CallbackQuery, state: FSMCon
         house_num = callback_query.data.replace("created_streetbtb_call_", "")
         location = (city, street, house_num)
         db = DataBaseEditor()
-        printer_id = db.get_printer_by_location(location=location)  # Пашок не полнял нахуя это надо то?
+        printer_id = db.get_printer_by_location(location=location)
         db.close_connection()
         del db
         async with state.proxy() as data:
@@ -295,7 +295,7 @@ async def user_test_handler(message: types.Message, state: FSMContext):
             new_file.write(downloaded_file.getvalue())
         converting_files_in_dirs(mode)
         await state.update_data(user_text=usr_text)
-        await state.finish()
+        await text_from_user.next()
         await bot.send_message(message.from_user.id,
                                "Давай настроим параметры на печати, или сразу отправляй документ на печать",
                                reply_markup=printparam_select_keyboard())
@@ -385,6 +385,8 @@ async def user_input_printer_id_handler(message: types.Message, state: FSMContex
         db.close_connection()
         del db
         await state.update_data(printer_id_location=printer_id)
+        async with state.proxy() as data:
+            data["printer_id"] = printer_id
         await bot.send_message(message.from_user.id, "Точка по заданному ID",
                                reply_markup=id_select_keyboard(street, house, printer_mark))
 

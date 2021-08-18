@@ -30,7 +30,7 @@ def add_favorite_keyboard():
 
 def list_buttoncreate_keyboard(streetlist):
     button_create_keyboard = types.InlineKeyboardMarkup()
-    button_create_buttons = [types.InlineKeyboardButton(text=x, callback_data="created_streetbtb_call") for x in streetlist]
+    button_create_buttons = [types.InlineKeyboardButton(text=x, callback_data="created_streetbtb_call_") for x in streetlist]
     button_create_keyboard.add(*button_create_buttons)
     return button_create_keyboard
 

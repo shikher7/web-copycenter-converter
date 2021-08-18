@@ -155,8 +155,9 @@ class DataBaseEditor:
 
     def get_printer_by_location(self, location):
         cursor = self.connection.cursor()
+        location = [f'%{x}%' for x in location]
         cursor.execute("""
-                        select ID from printers where city=? and street=? and house=?;
+                        select ID from printers where city like ? and street like ? and house like ?;
                         """, location)
         printer_id = cursor.fetchall()
         cursor.close()
@@ -254,4 +255,4 @@ class DataBaseEditor:
 
 if __name__ == '__main__':
     database_object = DataBaseEditor()
-    database_object.get_page_count_and_price(422115106, 0)
+    print(database_object.get_double_side_by_printer_id(1))

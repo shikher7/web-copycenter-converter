@@ -22,6 +22,7 @@
 *.png
 .idea/
 BackEnd/.env
+Test_bot/*
 /input_images/*
 /input_documents/*
 /BackEnd/trash/*
@@ -30,3 +31,4 @@ BackEnd/.env
 *.db
 /SmartCopyCenterBot/config.py
 ./.idea/
+/stickers/*
