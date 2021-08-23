@@ -51,7 +51,7 @@ class DataBaseEditor:
         cursor.execute("""CREATE TABLE IF NOT EXISTS printers (
                                                                 ID INTEGER PRIMARY KEY UNIQUE NOT NULL,
                                                                 printer_name TEXT NOT NULL,
-                                                                IP_ADDRES TEXT NOT NULL,
+                                                                IP_ADDRESS TEXT NOT NULL,
                                                                 cost_by_list decimal(10, 2) NOT NULL,
                                                                 city TEXT NOT NULL,
                                                                 street TEXT NOT NULL,
@@ -64,10 +64,8 @@ class DataBaseEditor:
                             """)
 
         cursor.execute("""CREATE TABLE IF NOT EXISTS users_has_printers (
-                                                                        ID INTEGER PRIMARY KEY NOT NULL UNIQUE,
-                                                                        user_id INTEGER,
+                                                                        user_id INTEGER PRIMARY KEY UNIQUE,
                                                                         printer_id INTEGER,
-                                                                      FOREIGN KEY (user_id) REFERENCES users(user_id),
                                                                       FOREIGN KEY (printer_id) REFERENCES printers(ID)
                                                                           );
                                     """)
@@ -142,10 +140,8 @@ class DataBaseEditor:
         return None
 
     def get_all_houses_of_street(self, street, city):
-        city = f'%{city[0].upper()}{city[1:].lower()}%'
-        street = f'%{street[0].upper()}{street[1:].lower()}%'
         cursor = self.connection.cursor()
-        cursor.execute("""select house from printers where city like ? and street like ?""", (city, street))
+        cursor.execute("""select house from printers where city=? and street=?""", (city, street))
         houses = cursor.fetchall()
         cursor.close()
         if houses:
@@ -210,7 +206,7 @@ class DataBaseEditor:
         cursor = self.connection.cursor()
         cursor.execute("""
                         select printer_id from users_has_printers where user_id=?;
-                        """, (user_id, ))
+                        """, (user_id,))
         indexes_of_printers = cursor.fetchall()
         cursor.close()
         if indexes_of_printers:
@@ -232,7 +228,7 @@ class DataBaseEditor:
         cursor = self.connection.cursor()
         cursor.execute("""
                         select row_id from users where user_id = ?
-                        """, (user_id, ))
+                        """, (user_id,))
         rows = cursor.fetchall()
         current_date = datetime.datetime.now().date().strftime("%Y-%m-%d")
         pages_count = []
@@ -246,8 +242,26 @@ class DataBaseEditor:
                 break
         cursor.execute("""
                         select cost_by_list from printers where ID=?;
-                        """, (printer_id, ))
+                        """, (printer_id,))
         printer_price_by_list = cursor.fetchall()[0][0]
+
+    def get_all_cites(self):
+        cursor = self.connection.cursor()
+        cursor.execute("""
+                        select city from printers;
+                        """)
+        cites = cursor.fetchall()
+        cursor.close()
+        return cites
+
+    def get_all_streets_by_city(self, city):
+        cursor = self.connection.cursor()
+        cursor.execute("""
+                        select street from printers where city=?
+                        """, (city, ))
+        streets = cursor.fetchall()
+        cursor.close()
+        return streets
 
     def close_connection(self):
         self.connection.close()
@@ -255,4 +269,3 @@ class DataBaseEditor:
 
 if __name__ == '__main__':
     database_object = DataBaseEditor()
-    print(database_object.get_double_side_by_printer_id(1))

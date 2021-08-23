@@ -24,6 +24,7 @@
 BackEnd/.env
 Test_bot/*
 /input_images/*
+redis_instruction
 /input_documents/*
 /BackEnd/trash/*
 *.pyc
@@ -32,3 +33,6 @@ Test_bot/*
 /SmartCopyCenterBot/config.py
 ./.idea/
 /stickers/*
+settings.py
+.env
+redis.conf
