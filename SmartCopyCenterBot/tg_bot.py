@@ -172,6 +172,7 @@ async def callback_processing(callback_query: types.CallbackQuery, state: FSMCon
         await feedback.userfeedback.set()
     elif callback_query.data == 'menu_btn':
         await bot.send_message(callback_query.from_user.id, "Переход в основное меню", reply_markup=menu_keyboard())
+        await state.finish()
     elif callback_query.data == "id_input_type":
         await bot.send_message(callback_query.from_user.id, "Загрузите файл", reply_markup=upload_select_keyboard())
 
@@ -251,14 +252,14 @@ async def street_handler(message: types.Message, state: FSMContext):
 # Выбор точки по геолокации
 @dp.message_handler(content_types=["location"], state=locat.tmp_location)
 async def street_handler(message: types.Message, state: FSMContext):
-    min_delta = 0.01
+    min_delta = 100.01
     user_locat = [message.location.latitude, message.location.longitude]
     db = DataBaseEditor()
     coordinates_of_printers = db.get_all_coords_of_printers_location()
     nearest_coord = 0
     for row_index in range(len(coordinates_of_printers)):
         delta = nearest_point_searcher(user_locat, coordinates_of_printers[row_index])
-        if delta > min_delta:
+        if delta < min_delta:
             min_delta = delta
             nearest_coord = coordinates_of_printers[row_index]
     selected_printer = db.get_printer_info_by_coords(nearest_coord)
@@ -269,7 +270,7 @@ async def street_handler(message: types.Message, state: FSMContext):
     printer_mark = selected_printer['printer_mark']
     printer_id = selected_printer['printer_id']
     await state.update_data(tmp_location=printer_id)
-    await state.finish()
+    await locat.next()
     async with state.proxy() as data:
         data["printer_id"] = printer_id
     await bot.send_message(message.from_user.id, "Ближайшая точка к вашей локации: ",
