@@ -1,11 +1,11 @@
 import datetime
 import logging
 import sqlite3
-import os
+from settings import ROOT_DIR, DATABASE_PATH
 
 # file constants of root
-PROJECT_ROOT = os.path.abspath('/home/slijirqqq/PycharmProjects/web-copy-center-converter')
-DATABASE_ROOT = os.path.join(PROJECT_ROOT, 'users_key_files.db')
+PROJECT_ROOT = ROOT_DIR
+DATABASE_ROOT = DATABASE_PATH
 
 
 class DataBaseEditor:

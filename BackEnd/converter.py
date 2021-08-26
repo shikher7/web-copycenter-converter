@@ -2,7 +2,8 @@ import datetime
 
 import PyPDF2
 from PIL import Image
-from BackEnd.database_editor import DataBaseEditor
+from .database_editor import DataBaseEditor
+from settings import ROOT_DIR
 
 import img2pdf
 import sys
@@ -21,7 +22,6 @@ html_template = '<!DOCTYPE html>' \
                 '</head>' \
                 '<body></body>' \
                 '</html>'
-ROOT_DIR = os.path.abspath('../')
 
 
 def count_pages(file):

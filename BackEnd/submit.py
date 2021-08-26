@@ -27,7 +27,8 @@ class ChoicePrinter(Printers):
         return self.__selected_printer
 
     def print_file(self):
-        cups.Connection().printFile(self.__printer_name, '/BackEnd/trash/skannnn_index_26.07.21.pdf', 'lol', options=self.__options)
+        cups.Connection().printFile(self.__printer_name, '/BackEnd/trash/skannnn_index_26.07.21.pdf', 'lol',
+                                    options=self.__options)
 
 
 if __name__ == "__main__":

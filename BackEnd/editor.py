@@ -1,11 +1,4 @@
-import os.path
-from dotenv import load_dotenv
-
-from BackEnd.converter import ImageConverter, OfficeConverter, html2pdf, txt2pdf, save_pdf, PageSize
-
-ROOT_DIR = os.path.abspath('../')
-IMAGE_DIR = os.path.join(ROOT_DIR, 'input_images')
-DOCUMENT_DIR = os.path.join(ROOT_DIR, 'input_documents')
+from .converter import ImageConverter, OfficeConverter, html2pdf, txt2pdf, save_pdf
 
 
 class EditorError(BaseException):
@@ -61,12 +54,3 @@ class Editor:
         for file_path in self.__files_path_list:
             if file_path.split('/')[-1].split('.')[-1] in self.__distributor:
                 self.__distributing(file_path, extension=file_path.split('/')[-1].split('.')[-1])
-
-
-dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
-if os.path.exists(dotenv_path):
-    load_dotenv(dotenv_path)
-DEBUG = bool(int(os.environ.get('DEBUG')))
-if DEBUG:
-    if __name__ == '__main__':
-        print(IMAGE_DIR)
