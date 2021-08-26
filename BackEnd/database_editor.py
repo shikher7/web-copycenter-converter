@@ -64,7 +64,7 @@ class DataBaseEditor:
                             """)
 
         cursor.execute("""CREATE TABLE IF NOT EXISTS users_has_printers (
-                                                                        user_id INTEGER PRIMARY KEY UNIQUE,
+                                                                        user_id INTEGER,
                                                                         printer_id INTEGER,
                                                                       FOREIGN KEY (printer_id) REFERENCES printers(ID)
                                                                           );
@@ -262,6 +262,16 @@ class DataBaseEditor:
         streets = cursor.fetchall()
         cursor.close()
         return streets
+
+    def insert_user_fav_list_add(self, user_id, printer_id):
+        cursor = self.connection.cursor()
+        cursor.execute("""
+                            INSERT INTO users_has_printers (user_id, printer_id) VALUES
+                                                        (?, ?);
+                            """, (user_id, printer_id))
+        self.connection.commit()
+        cursor.close()
+        self.close_connection()
 
     def close_connection(self):
         self.connection.close()

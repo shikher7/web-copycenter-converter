@@ -22,10 +22,28 @@ streetpattern = "created_streetbtb_call_\d*"
 favidpattern = "created_faividbtn_call_\d*"
 
 
-@dp.message_handler(commands=['start'])
-async def user_location(message: types.Message):
-    await bot.send_message(message.chat.id, "Отлично ✌\nВыбери свой город для начала работы",
+@dp.message_handler(commands=['start'], state="*")
+async def user_location(message: types.Message, state: FSMContext):
+    await state.finish()
+    start_value = message.get_args()
+    printer_id = start_value
+    if printer_id == "":
+        await bot.send_message(message.chat.id, "Отлично ✌\nВыбери свой город для начала работы",
                            reply_markup=city_select_keyboard())
+    else:
+        db = DataBaseEditor()
+        printer_info_by_id = db.get_printer_info_by_id(int(printer_id))
+        street = printer_info_by_id['street']
+        house = printer_info_by_id['house']
+        printer_mark = printer_info_by_id['printer_mark']
+        db.close_connection()
+        del db
+        await state.update_data(printer_id_location=printer_id)
+        async with state.proxy() as data:
+            data["printer_id"] = printer_id
+        printer_id = None
+        await bot.send_message(message.from_user.id, "Ваш принтер: ",
+                               reply_markup=id_select_keyboard(street, house, printer_mark))
 
 
 @dp.callback_query_handler(lambda call: True, state="*")
@@ -175,7 +193,18 @@ async def callback_processing(callback_query: types.CallbackQuery, state: FSMCon
         await state.finish()
     elif callback_query.data == "id_input_type":
         await bot.send_message(callback_query.from_user.id, "Загрузите файл", reply_markup=upload_select_keyboard())
-
+    elif callback_query.data == "add_fo_fav_list":
+        user_id = callback_query.from_user.id
+        async with state.proxy() as data:
+            printer_id = data["printer_id"]
+            print(data)
+        db = DataBaseEditor()
+        db.insert_user_fav_list_add(user_id, printer_id)
+        db.close_connection()
+        await state.finish()
+        await bot.send_message(callback_query.from_user.id, "Принтер добавлен в ваш список избранных\n"
+                                                            "Возращаем вас в меню",
+                               reply_markup=menu_keyboard())
 
 @dp.message_handler(state=reques_city.city)
 async def city_handler(message: types.Message, state: FSMContext):
