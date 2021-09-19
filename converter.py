@@ -48,12 +48,7 @@ class ImageConverter(PageSize):
         resized_image = self.image_file.resize(size=final_image_size, resample=Image.LANCZOS)
         canvas_image = Image.new(mode='RGB', size=self.page_size, color='white')
         canvas_image.paste(resized_image)
-        try:
-            from pathlib import Path
-            Path(os.path.join(self.page_format, suffix, convert_time, basename[1])).mkdir(parents=True, exist_ok=True)
-        except FileExistsError:
-            print('Directory already exists')
-        canvas_image.save(os.path.join(self.out_put_path, suffix, convert_time, basename[1], basename[
+        canvas_image.save(os.path.join(basename[
             0] + '.pdf'), format='PDF', quality=200)
 
 
@@ -75,10 +70,8 @@ class OfficeConverter(PageSize):
     def convert_to_pdf(self, timeout=None):
         basename = (self.input_path.split('/')[-1]).split('.')[-1]
         print(basename)
-        suffix = datetime.datetime.now().strftime('%d.%m.%y')
-        convert_time = datetime.datetime.now().strftime('%H:%M:00')
         args = [self.__libreoffice_exec(), '--headless', '--convert-to', 'pdf', '--outdir',
-                os.path.join(self.out_put_path, suffix, convert_time, basename), self.input_path]
+                os.path.join(basename), self.input_path]
         process = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
         filename = re.search('-> (.*?) using filter', process.stdout.decode())
 
@@ -90,17 +83,14 @@ class OfficeConverter(PageSize):
 
 def exception_files2pdf(file_path, format):
     file = PageSize(format_file=format, input_path=file_path)
-    datetime_dir = datetime.datetime.now().strftime('%d.%m.%y')
-    convert_time = datetime.datetime.now().strftime('%H:%M:00')
     try:
         from pathlib import Path
         Path(
-            os.path.join(file.out_put_path, datetime_dir, convert_time, file_path.split('/')[-1].split('.')[-1])).mkdir(
+            os.path.join(file_path.split('/')[-1].split('.')[-1])).mkdir(
             parents=True, exist_ok=True)
     except FileExistsError:
         print('Directory already exists')
-    output_path = os.path.join(file.out_put_path,
-                               datetime_dir, convert_time, file_path.split('/')[-1].split('.')[
+    output_path = os.path.join(file_path.split('/')[-1].split('.')[
                                    -1] + f'/{file_path.split("/")[-1].split(".")[:-1][0]}.pdf')
     return file_path, output_path
 
