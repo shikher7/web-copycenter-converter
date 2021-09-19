@@ -46,11 +46,6 @@ class Editor:
 if __name__ == '__main__':
     obj = Editor('A3',
                  files_path_list=[
-                     '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/file_example_XLS_1000.xls',
-                     '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/file_example_XLSX_10.xlsx',
-                     '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/file-sample_100kB.doc',
-                     '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/file-sample_100kB.docx',
-                     '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/pngtree-pink-watercolor-brushes-png-image_5054156.jpg',
-                     '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/lol.txt',
-                     '/home/woodver/pycharmProj/web-copycenter-converter-main/input_images/index.html'])
+                     '/home/shikher/Documents/GitHub/web-copycenter-converter/Untitled.docx',
+                     'home/shikher/Documents/GitHub/web-copycenter-converter/abc.txt'])
     obj.converting()
