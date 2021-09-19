@@ -7,6 +7,7 @@ import subprocess
 import re
 import os
 import pdfkit
+from fpdf import FPDF
 
 
 # sudo apt-get install wkhtmltopdf !!!!!
@@ -48,7 +49,8 @@ class ImageConverter(PageSize):
         canvas_image = Image.new(mode='RGB', size=self.page_size, color='white')
         canvas_image.paste(resized_image)
         try:
-            os.mkdir(self.page_format + '/' + suffix + '/' + convert_time + '/' + basename[1])
+            from pathlib import Path
+            Path(os.path.join(self.page_format, suffix, convert_time, basename[1])).mkdir(parents=True, exist_ok=True)
         except FileExistsError:
             print('Directory already exists')
         canvas_image.save(os.path.join(self.out_put_path, suffix, convert_time, basename[1], basename[
@@ -91,7 +93,10 @@ def exception_files2pdf(file_path, format):
     datetime_dir = datetime.datetime.now().strftime('%d.%m.%y')
     convert_time = datetime.datetime.now().strftime('%H:%M:00')
     try:
-        os.mkdir(os.path.join(file.out_put_path, datetime_dir, convert_time, file_path.split('/')[-1].split('.')[-1]))
+        from pathlib import Path
+        Path(
+            os.path.join(file.out_put_path, datetime_dir, convert_time, file_path.split('/')[-1].split('.')[-1])).mkdir(
+            parents=True, exist_ok=True)
     except FileExistsError:
         print('Directory already exists')
     output_path = os.path.join(file.out_put_path,
@@ -102,7 +107,14 @@ def exception_files2pdf(file_path, format):
 
 def txt2pdf(input_path, format, arg='-o'):
     file_path, output_path = exception_files2pdf(input_path, format)
-    return os.system(f'./txt2pdf.py {arg} {output_path} {file_path}')
+    pdf_file = FPDF(format=format)
+    pdf_file.add_page()
+    pdf_file.set_font('Arial')
+    txt_file = open("/"+file_path, 'r')
+    for line in txt_file:
+        pdf_file.cell(200, 10, txt=line, ln=1, align='C')
+    pdf_file.output(output_path)
+    txt_file.close()
 
 
 def html2pdf(input_path, format):

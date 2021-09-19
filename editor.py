@@ -47,5 +47,5 @@ if __name__ == '__main__':
     obj = Editor('A3',
                  files_path_list=[
                      '/home/shikher/Documents/GitHub/web-copycenter-converter/Untitled.docx',
-                     'home/shikher/Documents/GitHub/web-copycenter-converter/abc.txt'])
+                     'home/shikher/Documents/GitHub/web-copycenter-converter/sample1.txt'])
     obj.converting()
