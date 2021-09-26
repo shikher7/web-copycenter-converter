@@ -4,6 +4,7 @@ import time
 from converter import ImageConverter, OfficeConverter, html2pdf, txt2pdf
 
 import fleep
+INPUT_DIR = "input"
 
 
 class Editor:
@@ -44,8 +45,7 @@ class Editor:
 
 
 if __name__ == '__main__':
+    files_path_list_input = os.listdir(INPUT_DIR)
     obj = Editor('A3',
-                 files_path_list=[
-                     '/home/shikher/Documents/GitHub/web-copycenter-converter/Untitled.docx',
-                     'home/shikher/Documents/GitHub/web-copycenter-converter/sample1.txt'])
+                 files_path_list=files_path_list_input)
     obj.converting()

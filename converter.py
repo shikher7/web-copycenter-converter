@@ -9,8 +9,7 @@ import os
 import pdfkit
 from fpdf import FPDF
 
-
-# sudo apt-get install wkhtmltopdf !!!!!
+INPUT_PATH = "input"
 
 class PageSize:
     __formats_list_size = {
@@ -100,7 +99,7 @@ def txt2pdf(input_path, format, arg='-o'):
     pdf_file = FPDF(format=format)
     pdf_file.add_page()
     pdf_file.set_font('Arial')
-    txt_file = open("/"+file_path, 'r')
+    txt_file = open(file_path, 'r')
     for line in txt_file:
         pdf_file.cell(200, 10, txt=line, ln=1, align='C')
     pdf_file.output(output_path)
